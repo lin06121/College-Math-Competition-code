@@ -1,1 +1,0 @@
-match_id,group_id,round_in_group,team_a,team_b,venue_id,slot_id,city,country,reference_date,reference_kickoff_time,local_datetime,utc_datetime,required_security_level,expected_attendance,expected_tv_viewers,ticket_revenue_usd,broadcast_value_usd,travel_cost_index,fairness_penalty,risk_index,total_objective_value
