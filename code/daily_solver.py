@@ -29,6 +29,7 @@ def build_and_solve(price, load, pv, e0,
                     e_end=None,
                     allow_emergency=False,
                     dt=HOURS_PER_SLOT,
+                    term_value=0.0,
                     verbose=False):
     """
     用 scipy.optimize.milp 求解单日储能经济调度。
@@ -77,7 +78,9 @@ def build_and_solve(price, load, pv, e0,
     c[i_plan:i_plan + n] = price * dt  # 计划购电费用
     if allow_emergency:
         c[i_em:i_em + n] = 5.0 * price * dt  # 紧急购电 5 倍惩罚
-    # P_ch, P_dis, P_curt, E, u 的目标系数均为 0
+    if term_value:
+        c[i_e + n] = -term_value  # 终端储电量价值 λ（元/kWh），避免日终把电池放空
+    # P_ch, P_dis, P_curt, u 的目标系数均为 0
 
     # 变量上下界
     lb = np.zeros(n_vars)

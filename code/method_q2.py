@@ -120,8 +120,9 @@ def causal_dispatch(net_actual_kW, P_plan_kW, e0):
     完美预测时 g 恰等于计划充放电量，规则自动复现日前计划。
 
     返回 (P_ch, P_dis, P_em, E, P_curt)，功率口径 kW / 储电量 kWh。
+    传入数组长度可变：既可用于整天（144），也可用于日内某一段。
     """
-    n = SLOTS_PER_DAY
+    n = len(net_actual_kW)
     P_ch = np.zeros(n)
     P_dis = np.zeros(n)
     P_em = np.zeros(n)
