@@ -9,7 +9,10 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-from config import FIGURES_DIR, KEY_DATES, SLOTS_PER_DAY, HOURS_PER_SLOT, get_season
+from config import (
+    FIGURES_DIR, KEY_DATES, SLOTS_PER_DAY, HOURS_PER_SLOT,
+    STORAGE_SOC_MIN, STORAGE_SOC_MAX, get_season,
+)
 
 
 def _setup_fonts():
@@ -292,6 +295,63 @@ def plot_typical_vs_rt_price(df: pd.DataFrame, out_path: Path = None):
     plt.tight_layout()
     if out_path is None:
         out_path = FIGURES_DIR / "typical_vs_rt_price.png"
+    plt.savefig(out_path, dpi=200)
+    plt.close()
+
+
+def plot_q1_solution(sol: dict, out_path: Path = None):
+    """问题 1 优化结果可视化：购电功率、充放电功率、SOC、电价/净负载"""
+    _setup_fonts()
+    n = SLOTS_PER_DAY
+    hours = [_slot_to_hour(s) for s in range(n)]
+    price = sol["price"]
+    net_load = sol["load"] - sol["pv"]
+    P_grid = sol["P_grid_kW"]
+    P_ch = sol["P_ch_kW"]
+    P_dis = sol["P_dis_kW"]
+    E = sol["E_kWh"][:-1]  # 取每个 slot 起始 SOC
+
+    fig, axes = plt.subplots(4, 1, figsize=(14, 12), sharex=True)
+
+    # 1. 电价与净负载
+    ax1 = axes[0]
+    ax1.plot(hours, price, color="tab:red", label="Price")
+    ax1.set_ylabel("Price (Yuan/kWh)", color="tab:red")
+    ax1.tick_params(axis="y", labelcolor="tab:red")
+    ax1.set_title("Typical-day Price and Net Load")
+    ax2 = ax1.twinx()
+    ax2.plot(hours, net_load, color="tab:blue", alpha=0.6, label="Net load")
+    ax2.axhline(0, color="black", linestyle="--", linewidth=0.8)
+    ax2.set_ylabel("Net load (kW)", color="tab:blue")
+    ax2.tick_params(axis="y", labelcolor="tab:blue")
+
+    # 2. 计划购电功率
+    axes[1].plot(hours, P_grid, color="tab:orange", label="Grid purchase")
+    axes[1].set_ylabel("Power (kW)")
+    axes[1].set_title("Optimized Grid Purchase Power")
+    axes[1].legend()
+
+    # 3. 充放电功率
+    axes[2].fill_between(hours, P_ch, color="tab:green", alpha=0.5, label="Charge")
+    axes[2].fill_between(hours, -P_dis, color="tab:purple", alpha=0.5, label="Discharge")
+    axes[2].axhline(0, color="black", linestyle="-", linewidth=0.8)
+    axes[2].set_ylabel("Power (kW)")
+    axes[2].set_title("Battery Charge / Discharge Power")
+    axes[2].legend()
+
+    # 4. SOC
+    axes[3].plot(hours, E, color="tab:cyan", label="SOC")
+    axes[3].axhline(STORAGE_SOC_MIN, color="red", linestyle="--", linewidth=0.8, label="SOC bounds")
+    axes[3].axhline(STORAGE_SOC_MAX, color="red", linestyle="--", linewidth=0.8)
+    axes[3].set_ylabel("Energy (kWh)")
+    axes[3].set_xlabel("Hour of day")
+    axes[3].set_title("Battery State of Charge")
+    axes[3].legend()
+    axes[3].set_xlim(0, 24)
+
+    plt.tight_layout()
+    if out_path is None:
+        out_path = FIGURES_DIR / "q1_solution_profile.png"
     plt.savefig(out_path, dpi=200)
     plt.close()
 
