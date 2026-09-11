@@ -102,6 +102,7 @@ def build_scenarios(target_idx, errors, dates, m: int = 10):
 
 def _build_day_lp(price, net_scenarios, probs, e0,
                   p_plan_fixed=None,
+                  terminal_value=0.0,
                   dt=HOURS_PER_SLOT,
                   eta=STORAGE_EFFICIENCY,
                   p_max=STORAGE_MAX_POWER,
@@ -117,6 +118,10 @@ def _build_day_lp(price, net_scenarios, probs, e0,
 
     p_plan_fixed 给出时，P_plan 被固定（用于实时 recourse 阶段），
     且其目标系数置 0（计划费用已确定）。
+
+    terminal_value : float
+        终端储电量的边际价值 λ（元/kWh），目标中加入 −λ·E(144)，
+        用于近似"把电留到明天"的跨日价值。λ=0 即自由终端。
 
     返回 (c, A, lb_ineq, ub_ineq, bounds) 。
     """
@@ -134,6 +139,9 @@ def _build_day_lp(price, net_scenarios, probs, e0,
         b = n + s * per_scen
         i_em = b + 2 * n
         c[i_em:i_em + n] = probs[s] * 5.0 * price * dt   # 期望紧急购电费用
+        if terminal_value:
+            # 终端储电量的跨日价值（按情景概率加权）
+            c[b + 4 * n + n] -= probs[s] * terminal_value
 
     # --- 变量上下界 ---
     lb = np.zeros(nv)
@@ -222,13 +230,14 @@ def _extract_solution(res, S, price, dt):
 
 
 def solve_stochastic_day(price, net_forecast, scen_errors, probs, e0,
-                         dt=HOURS_PER_SLOT, verbose=False):
+                         terminal_value=0.0, dt=HOURS_PER_SLOT, verbose=False):
     """
     求解单日两阶段随机规划，返回第一阶段决策 P_plan 与各情景第二阶段解。
     """
     net_scenarios = [net_forecast + e for e in scen_errors]
     c, A, lb_ineq, ub_ineq, bounds = _build_day_lp(
-        price, net_scenarios, probs, e0, p_plan_fixed=None, dt=dt)
+        price, net_scenarios, probs, e0, p_plan_fixed=None,
+        terminal_value=terminal_value, dt=dt)
 
     res = milp(c=c, constraints=LinearConstraint(A, lb_ineq, ub_ineq),
                bounds=bounds)
@@ -242,14 +251,14 @@ def solve_stochastic_day(price, net_forecast, scen_errors, probs, e0,
 
 
 def solve_recourse_day(price, net_actual, P_plan, e0,
-                       dt=HOURS_PER_SLOT, verbose=False):
+                       terminal_value=0.0, dt=HOURS_PER_SLOT, verbose=False):
     """
     实时 recourse：给定计划购电 P_plan 与当日实际净负载，优化储能充放电，
     最小化 5 倍紧急购电费用。返回实际充放电量、紧急购电量与终端 SOC。
     """
     c, A, lb_ineq, ub_ineq, bounds = _build_day_lp(
         price, [net_actual], np.array([1.0]), e0,
-        p_plan_fixed=P_plan, dt=dt)
+        p_plan_fixed=P_plan, terminal_value=terminal_value, dt=dt)
 
     res = milp(c=c, constraints=LinearConstraint(A, lb_ineq, ub_ineq),
                bounds=bounds)
