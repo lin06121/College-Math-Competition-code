@@ -24,37 +24,60 @@ from forecast_q2 import load_historical_matrices, forecast_load_pv
 from daily_solver import build_and_solve
 from stochastic_q2 import compute_net_forecast_errors, build_scenarios, solve_stochastic_day
 from method_q2 import (
-    make_class_array, forecast_mate, compute_residuals_mate,
-    quantile_margin, causal_dispatch,
+    make_class_array, forecast_mate, compute_residuals_mate, load_fallback_profile,
+    quantile_margin, causal_dispatch, stiff_dispatch,
 )
 
 
 def run_year(forecast_kind, plan_kind, settle="causal",
-             q=0.7, m_scenarios=10, k_forecast=4,
-             start_date="2025-02-01", end_date="2025-12-31", verbose=False):
+             q=0.7, m_scenarios=10, k_forecast=4, storage=True,
+             warm_start="2025-01-01", start_date="2025-02-01", end_date="2025-12-31",
+             verbose=False):
     """
     跑一整年，返回汇总 dict。
 
-    forecast_kind : 'mate' | 'ours'
-    plan_kind     : 'nv' | 'saa' | 'point'
-    settle        : 'causal'（可实行）| 'recour'（不可实行下界）
+    forecast_kind : 'mate'（同类日负荷 + 近 4 日光伏，采用）| 'ours'（同星期几）
+                    | 'persist'（昨日外推）| 'typical'（附件 1 典型日）
+    plan_kind     : 'nv'（报童裕度）| 'saa'（两阶段随机规划）| 'point'（无裕度点预测）
+    settle        : 'causal'（因果实时平衡，可实行）| 'stiff'（僵硬执行，无日内平衡）
+                    | 'recour'（事后最优再调度，不可实行下界）
+    storage       : False 时储能容量置零（无储能对照）
+
+    注：'stiff' 需要日前计划的充放电轨迹，故只与 plan_kind ∈ {'nv','point'} 搭配。
     """
     dates, load, pv, price_mat = load_historical_matrices()
     net = load - pv
     d2i = {pd.Timestamp(d): i for i, d in enumerate(dates)}
-    tds = pd.date_range(pd.Timestamp(start_date), pd.Timestamp(end_date), freq="D")
-    price = price_mat[d2i[pd.Timestamp(start_date)]]
+    tds = pd.date_range(pd.Timestamp(warm_start), pd.Timestamp(end_date), freq="D")
+    keep_from = pd.Timestamp(start_date)
+    price = price_mat[d2i[pd.Timestamp(warm_start)]]
 
     cls_arr = make_class_array(dates)
-    if forecast_kind == "ours":
-        _, err = compute_net_forecast_errors(dates, net, k=k_forecast)
-    else:
-        err = compute_residuals_mate(dates, load, pv, net, cls_arr)
+    typ_l, typ_p = load_fallback_profile()
 
     def forecast(i, td):
         if forecast_kind == "ours":
+            if i < 7:                    # 预热期首周无同星期几样本，退化为典型日
+                return typ_l.copy(), typ_p.copy()
             return forecast_load_pv(td, dates, load, pv, k=k_forecast)
+        if forecast_kind == "persist":
+            if i == 0:
+                return typ_l.copy(), typ_p.copy()
+            return load[i - 1].copy(), np.maximum(pv[i - 1], 0.0)
+        if forecast_kind == "typical":
+            return typ_l.copy(), typ_p.copy()
         return forecast_mate(i, dates, load, pv, cls_arr)
+
+    # 残差与该预测依据一致（裕度需与实际偏差同分布）
+    if forecast_kind == "ours":
+        _, err = compute_net_forecast_errors(dates, net, k=k_forecast)
+    elif forecast_kind == "mate":
+        err = compute_residuals_mate(dates, load, pv, net, cls_arr)
+    else:
+        err = np.full((len(dates), SLOTS_PER_DAY), np.nan)
+        for i in range(len(dates)):
+            lf, pf = forecast(i, dates[i])
+            err[i] = net[i] - (lf - pf)
 
     e0 = STORAGE_INITIAL_SOC
     r = dict(plan_cost=0.0, em_cost=0.0, em_kWh=0.0, plan_kWh=0.0, curt_kWh=0.0)
@@ -66,31 +89,51 @@ def run_year(forecast_kind, plan_kind, settle="causal",
         net_a = net[i]
 
         # ---- 日前计划 ----
-        if plan_kind == "saa":
-            idx, probs = build_scenarios(i, err, dates, m=m_scenarios)
-            P_plan, _, _ = solve_stochastic_day(
-                price, net_f, err[idx], probs, e0=e0, verbose=False)
+        C_plan = D_plan = None
+        if not storage:
+            b = quantile_margin(err, i, q) if plan_kind == "nv" else np.zeros(SLOTS_PER_DAY)
+            P_plan = np.maximum(net_f + b, 0.0)
+            C_plan = np.zeros(SLOTS_PER_DAY)
+            D_plan = np.zeros(SLOTS_PER_DAY)
+        elif plan_kind == "saa":
+            has_hist = len(np.where(
+                (np.arange(len(err)) < i) & (~np.isnan(err).any(axis=1)))[0]) > 0
+            if has_hist:
+                idx, probs = build_scenarios(i, err, dates, m=m_scenarios)
+                P_plan, _, _ = solve_stochastic_day(
+                    price, net_f, err[idx], probs, e0=e0, verbose=False)
+            else:                        # 预热期无历史误差样本，退回确定性 LP
+                sol = build_and_solve(price, load_f, pv_f, e0=e0, cyclic=False,
+                                      allow_emergency=False, verbose=False)
+                P_plan, C_plan, D_plan = sol["P_plan_kW"], sol["P_ch_kW"], sol["P_dis_kW"]
         else:
             b = quantile_margin(err, i, q) if plan_kind == "nv" else np.zeros(SLOTS_PER_DAY)
             sol = build_and_solve(price, load_f + b, pv_f, e0=e0,
                                   cyclic=False, allow_emergency=False, verbose=False)
             P_plan = sol["P_plan_kW"]
+            C_plan, D_plan = sol["P_ch_kW"], sol["P_dis_kW"]
 
         # ---- 结算 ----
         if settle == "causal":
             P_ch, P_dis, P_em, E, P_curt = causal_dispatch(net_a, P_plan, e0)
+        elif settle == "stiff":
+            assert C_plan is not None, "stiff 结算需要日前充放电轨迹（仅支持 nv/point 计划）"
+            P_ch, P_dis, P_em, E, P_curt = stiff_dispatch(
+                net_a, P_plan, C_plan, D_plan, e0)
         else:
             from stochastic_q2 import solve_recourse_day
             s0 = solve_recourse_day(price, net_a, P_plan, e0=e0, verbose=False)
             P_ch, P_dis, P_em, E, P_curt = (s0["P_ch_kW"], s0["P_dis_kW"],
                                             s0["P_em_kW"], s0["E_kWh"], s0["P_curt_kW"])
 
-        r["plan_cost"] += float((P_plan * price).sum() * HOURS_PER_SLOT)
-        r["em_cost"] += float((P_em * price).sum() * HOURS_PER_SLOT * 5.0)
-        r["em_kWh"] += float(P_em.sum() * HOURS_PER_SLOT)
-        r["plan_kWh"] += float(P_plan.sum() * HOURS_PER_SLOT)
-        r["curt_kWh"] += float(P_curt.sum() * HOURS_PER_SLOT)
-        e0 = E[-1]
+        e_next = E[-1]
+        if td >= keep_from:                       # 1 月仅作储电量链条预热，不计入统计
+            r["plan_cost"] += float((P_plan * price).sum() * HOURS_PER_SLOT)
+            r["em_cost"] += float((P_em * price).sum() * HOURS_PER_SLOT * 5.0)
+            r["em_kWh"] += float(P_em.sum() * HOURS_PER_SLOT)
+            r["plan_kWh"] += float(P_plan.sum() * HOURS_PER_SLOT)
+            r["curt_kWh"] += float(P_curt.sum() * HOURS_PER_SLOT)
+        e0 = e_next
 
     r["total_cost"] = r["plan_cost"] + r["em_cost"]
     if verbose:

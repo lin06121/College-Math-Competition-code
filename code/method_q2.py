@@ -146,6 +146,28 @@ def causal_dispatch(net_actual_kW, P_plan_kW, e0):
     return P_ch, P_dis, P_em, E, P_curt
 
 
+def stiff_dispatch(net_actual_kW, P_plan_kW, P_ch_plan_kW, P_dis_plan_kW, e0):
+    """
+    僵硬执行（无日内平衡）：完全按日前计划的充放电量执行，不随实际净负载调整。
+
+    缺口 g = 实际净负载 − (计划购电 + 计划放电 − 计划充电)：g>0 按 5 倍电价紧急购电，
+    g<0 弃光。储电量沿计划轨迹推进（计划本身满足 SOC 与功率约束）。
+    作为因果实时平衡控制的对照，用于量化"日内调整"的价值。
+
+    返回 (P_ch, P_dis, P_em, E, P_curt)，与 causal_dispatch 同口径（功率 kW、储电量 kWh）。
+    """
+    n = len(net_actual_kW)
+    P_ch = np.asarray(P_ch_plan_kW, float).copy()
+    P_dis = np.asarray(P_dis_plan_kW, float).copy()
+    gap = np.asarray(net_actual_kW, float) - (np.asarray(P_plan_kW, float) + P_dis - P_ch)
+    P_em = np.maximum(gap, 0.0)
+    P_curt = np.maximum(-gap, 0.0)
+    E = np.zeros(n + 1)
+    E[0] = e0
+    E[1:] = e0 + np.cumsum(ETA * P_ch * HOURS_PER_SLOT - P_dis * HOURS_PER_SLOT / ETA)
+    return P_ch, P_dis, P_em, E, P_curt
+
+
 def verify_causal(P_ch, P_dis, P_em, E, P_curt, net_actual_kW, P_plan_kW, tol=1e-6):
     """校验因果结算结果满足功率平衡、SOC 边界与充放电互斥。"""
     # 净负载已含 −PV，故平衡为 P_plan + P_em + P_dis − P_ch − P_curt = net_actual
