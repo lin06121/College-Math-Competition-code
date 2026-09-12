@@ -1,0 +1,65 @@
+\section{模型假设与符号说明}
+\label{sec:assume}
+
+\subsection{模型假设}
+
+\begin{enumerate}[label=\textbf{假设\arabic*.}, leftmargin=4.2em, itemsep=2pt]
+\item 各时段附件给出的功率（kW\nobreak）为该 10 分钟区间的平均功率\nobreak，故区间电量（kWh\nobreak）$=$ 功率 $\times \frac{10}{60}$\nobreak；
+\item 光伏发电优先本地消纳\nobreak，富余功率可用于储能充电\nobreak；当富余功率超过储能最大充电功率时允许\textbf{弃光}\nobreak；
+\item 储能充放电效率取\textbf{单程 90\%}（充电存入 90\%\nobreak、放电放出 90\%\nobreak，往返 81\%\nobreak）\nobreak，且同一时段不会同时充放电（LP 最优解自动满足\nobreak）\nobreak；
+\item 微网与外网的联络线购电能力不受限（无功率上限\nobreak）\nobreak，但供电不得低于小区负载\nobreak，缺口须以 5 倍电价紧急购电\nobreak；
+\item 问题二中 0:00 制定计划时\textbf{无法获得当日实测负载与光伏}\nobreak，只能利用历史实测数据构造预测\nobreak；
+计划量报出后不可更改\nobreak，日内由储能按第 \ref{sec:q2} 节的\textbf{实时平衡控制规则}兜底
+（只用当前实测与当前储电量\nobreak）\nobreak，兜不住的缺口才按 5 倍电价紧急购电\nobreak；
+\item 问题三中 0:00 计划依据 0:00 发布的光伏预报\nobreak，6:00/12:00/18:00 的调整仅作用于其后时段并继承当前储电量\nobreak；
+\item 问题四中 0:00 \textbf{无法获知当日实际实时电价}（只知历史已实现电价与题面机制\nobreak）\nobreak，
+故用历史电价\textbf{预测}当日各时段电价：0:00 用“周周期加权结构模型 + LightGBM 残差修正”形成日前价格预测\nobreak，
+6:00/12:00/18:00 再用\textbf{当日已实现时段}的电价误差滚动修正后续预测\nobreak；
+\textbf{预测电价只用于制定与调整购电计划\nobreak，全部费用一律按附件4 实际发生的实时电价结算}\nobreak；
+\item 结果文件窗口为 2025-02-01 至 12-31\nobreak；2025 年 1 月作为储电量链条与预测历史信息的预热期（初始储电量 6000 kWh 对应 2025-01-01 0:00\nobreak）\nobreak；
+\item 日末储电量以“次日平均电价 $\times$ 放电效率\nobreak”作为残值计入当日目标函数（滚动时域的标准做法\nobreak，避免每日耗尽储能的短视行为\nobreak）\nobreak；
+\item 忽略线路损耗\nobreak、储能自放电与设备老化\nobreak，各时段参数在日内不变\nobreak。
+\end{enumerate}
+
+\subsection{符号说明}
+
+\begin{table}[htbp]
+\centering
+\caption{主要符号}
+\label{tab:symbols}
+\zihao{-5}
+\begin{tabular}{@{}clcl@{}}
+\toprule
+符号 & 含义 & 符号 & 含义 \\
+\midrule
+$t$ & 时段序号\nobreak，$t=1,\dots,144$ & $C_t,D_t$ & 时段 $t$ 的充电量\nobreak、放电量（kWh\nobreak）\\
+$L_t$ & 时段 $t$ 小区负载电量（kWh\nobreak） & $E_t$ & 时段 $t$ 起始储电量（kWh\nobreak）\\
+$PV_t$ & 时段 $t$ 光伏发电量（kWh\nobreak） & $E_0,E_{145}$ & 0:00\nobreak、24:00 储电量（kWh\nobreak）\\
+$P_t$ & 时段 $t$ 计划购电量（kWh\nobreak） & $\eta_c,\eta_d$ & 充\nobreak、放电效率\nobreak，均取 0.9\\
+$p_t$ & 时段 $t$ 电价（元/kWh\nobreak） & $v$ & 日末储电量残值系数（元/kWh\nobreak）\\
+$q$ & 报童安全裕度的分位水平 & $b_t$ & 时段 $t$ 的安全裕度（kWh\nobreak）\\
+$\hat L_t,\hat{PV}_t$ & 负载\nobreak、光伏的预测（基值\nobreak） & $S_t,X_t$ & 计划超出量\nobreak、调整超出量（kWh\nobreak）\\
+$\bar C,\bar D$ & 充放电功率上限折合 833.33 kWh & $E_t^{\text{急}}$ & 时段 $t$ 紧急购电量（kWh\nobreak）\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{通用单日线性规划模型}
+
+综合第 2 节的机理与第 3 节的规律\nobreak，四问共用的单日 LP 如下（以预测基值 $\hat L,\hat{PV}$ 为输入\nobreak）\nobreak：
+
+\begin{equation}
+\underset{P,C,D,E}{\text{min}}\quad \sum_{t=1}^{144} p_t P_t \;-\; v\,E_{145}
+\label{eq:obj}
+\end{equation}
+\begin{align}
+\text{s.t.}\quad & \hat{PV}_t + P_t + D_t - C_t \ \ge\ \hat L_t, && t=1,\dots,144 \label{eq:c1}\\
+& E_{t+1} = E_t + \eta_c C_t - \frac{D_t}{\eta_d}, && t=1,\dots,144 \label{eq:c2}\\
+& 1200 \le E_t \le 10800, && t=1,\dots,145 \label{eq:c3}\\
+& 0 \le C_t \le \bar C,\quad 0 \le D_t \le \bar D, && t=1,\dots,144 \label{eq:c4}\\
+& P_t \ge 0, && t=1,\dots,144 \label{eq:c5}
+\end{align}
+其中 $E_1=E_0$ 由链条给出（问题一取 $E_1=E_{145}=6000$\nobreak；问题二至四取前一日的 24:00 储电量\nobreak）\nobreak，
+残值系数 $v=0.9\times\bar p_{\text{次日}}$（问题一不含残值项而直接约束端点相等\nobreak）\nobreak。
+该模型为\textbf{标准线性规划}\nobreak，决策变量 $4\times144+1=577$ 个\nobreak，约束 $288+1$ 条\nobreak，
+用 HiGHS 内点/单纯形混合算法求解\nobreak，单日求解时间约 9 ms\nobreak。

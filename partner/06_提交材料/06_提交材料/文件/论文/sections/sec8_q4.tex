@@ -1,0 +1,147 @@
+\section{问题四\nobreak：实时波动电价下的重算}
+\label{sec:q4}
+
+\subsection{模型调整}
+
+问题四把基准电价曲线替换为附件4 的逐时段实时电价 $p_t^{\text{实}}$（0.0076--1.7936 元/kWh\nobreak）\nobreak，
+并新增一条\textbf{信息约束}\nobreak：当日 0:00 \textbf{不知道}当天各时段的实际电价\nobreak，
+只能用\textbf{历史已实现电价}预测当天电价\nobreak，且预测电价\textbf{只用于制定与调整购电计划\nobreak，
+最终费用一律按附件4 实际发生的电价结算}\nobreak。
+其余机制与问题二、三一致\nobreak：问题四之二沿用“0:00 计划 $+$ 平衡响应规则\nobreak”\nobreak，
+问题四之三沿用“0:00 计划 $+$ 全时刻滚动调整 $+$ 平衡响应规则\nobreak”\nobreak，报童分位取 $q_3^*=0.6$\nobreak，
+计划阶段的残值系数按\textbf{预测电价}的次日均值日更新 $v_d=0.9\times\overline{\hat p_{d+1}}$\nobreak。
+
+\textbf{（1\nobreak）0:00 的日前价格预测}\nobreak：用第 \ref{sec:q2} 节的“周周期加权结构模型 + LightGBM 残差修正\nobreak”
+（式 \eqref{eq:qp}\nobreak，MAE $=0.0451$ 元/kWh\nobreak，全部因果\nobreak）预测当天 144 个时段的电价 $\hat p_{d,t}$\nobreak，
+代入式 \eqref{eq:obj}--\eqref{eq:c5} 得到计划 $P^0_t,C^0_t,D^0_t$\nobreak。
+
+\textbf{（2\nobreak）6:00/12:00/18:00 的日内滚动修正}\nobreak：用\textbf{当天已实现时段}的实际电价与 0:00 预测的误差\nobreak，
+对后续时段的价格预测做阻尼修正（本文取阻尼 0.7\nobreak，实测使剩余时段电价 MAE 由
+0.0495/0.0475/0.0412 降到 0.0471/0.0436/0.0386 元/kWh\nobreak）\nobreak，
+再用式 \eqref{eq:adj_obj}--\eqref{eq:adj_link} 重解剩余时段的调整量\nobreak。
+
+\subsection{结果与对照}
+
+\begin{table}[htbp]
+\centering
+\caption{问题四\nobreak：波动电价下问题二（Q4-2\nobreak）与问题三（Q4-3\nobreak）全年费用（2.1--12.31\nobreak，单位\nobreak：元\nobreak）}
+\label{tab:q4cmp}
+\zihao{-5}
+\begin{tabular}{@{}llccc@{}}
+\toprule
+场景 & 方法 & 计划购电费 & 调整/紧急费 & 总费用 \\
+\midrule
+\multirow{5}{*}{Q4-2}
+& \textbf{预测电价（周周期+残差修正\nobreak，采用\nobreak）} & \textbf{13\,578\,778} & \textbf{807\,573} & \textbf{14\,386\,351} \\
+& 电价模型改用廓线+堆叠（对照\nobreak） & 13\,554\,450 & 808\,329 & 14\,362\,780 \\
+& 0:00 已知实际电价（上界\nobreak，不可达\nobreak） & 13\,498\,922 & 840\,331 & 14\,339\,252 \\
+& 无储能对照 & 18\,844\,994 & （含于左\nobreak） & 18\,844\,994 \\
+& 完全信息下界（天眼链式\nobreak） & 12\,918\,609 & 0 & 12\,918\,609 \\
+\midrule
+\multirow{5}{*}{Q4-3}
+& 仅 0:00 计划（不做调整\nobreak） & 13\,357\,703 & 1\,885\,649 & 15\,243\,351 \\
+& $+12{:}00$ 调整 & 13\,357\,540 & 1\,047\,898 & 14\,405\,439 \\
+& $+18{:}00$ 调整 & 13\,356\,796 & 973\,202 & 14\,329\,998 \\
+& \textbf{全滚动（6/12/18\nobreak）（采用\nobreak）} & \textbf{13\,436\,567} & \textbf{665\,205} & \textbf{14\,101\,772} \\
+& 0:00 全程已知实际电价（上界\nobreak，不可达\nobreak） & 13\,356\,785 & 677\,850 & 14\,034\,636 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{enumerate}[label=(\arabic*), leftmargin=2.4em, itemsep=1pt]
+\item \textbf{波动电价放大了储能的价值}\nobreak：Q4-2 采用方案 14\,386\,351 元\nobreak，
+相较无储能对照（18\,844\,994 元\nobreak）节约 \textbf{445.9 万元（23.7\%\nobreak）}\nobreak；
+原因是附件4 的峰谷价差更大（近零电价时段最低 0.0076 元/kWh\nobreak、最高 1.7936 元/kWh\nobreak）\nobreak，
+储能“低价抄底\nobreak、高价放电\nobreak”的套利空间扩大\nobreak；全年低于 0.05 元/kWh 的时段共 9 个\nobreak，
+集中出现在午间光伏大发时段\nobreak。与固定电价相比 Q4-2 上升 5.4\%\nobreak，
+距天眼下界 146.8 万元\nobreak。
+\item \textbf{波动电价下“全时刻滚动”的收益更大}\nobreak：Q4-3 采用方案 \textbf{14\,101\,772} 元\nobreak，
+比不做调整（15\,292\,851 元\nobreak）节约 \textbf{119.1 万元（7.79\%\nobreak）}\nobreak，
+比 Q4-2 的采用方案（14\,386\,351 元\nobreak）还低 \textbf{1.98\%}\nobreak；
+单用 12:00、18:00 分别只省 82.7、89.5 万元\nobreak，结论与问题三一致——\textbf{三个发布时刻全用最优}\nobreak。
+\item \textbf{“0:00 不知道当日实际电价\nobreak”的代价很小（这才是真正的信息价值）}\nobreak：
+若把 Q4-2 的计划换成“0:00 已知实际电价\nobreak”的不可达上界（14\,339\,252 元\nobreak）\nobreak，
+只便宜 \textbf{4.71 万元（0.33\%\nobreak）}\nobreak；Q4-3 的上界为 14\,034\,636 元\nobreak，代价 6.71 万元（0.47\%\nobreak）\nobreak。
+原因是电价\textbf{周内规律很强}（周五、周六明显偏低\nobreak，见第 3 节\nobreak）\nobreak，
+周周期加权结构模型已能解释主要变化\nobreak，残差修正再补上其余部分\nobreak；
+这也说明\textbf{把建模精力投在负荷/光伏预测与实时平衡控制上\nobreak，比投在电价预测上更划算}\nobreak。
+\item \textbf{周内电价规律被自动利用}\nobreak：采用方案中各星期日均净充电量显示\nobreak，
+周四净充电 $+2741$ kWh（全周最低\nobreak）\nobreak、周五净充电 $+5087$ kWh（全周最高\nobreak）\nobreak，
+而实时电价的周内均值恰为周五 0.6190\nobreak、周六 0.6220 元/kWh\nobreak，显著低于其余五天约 0.811 元/kWh
+——LP 自动把充电安排在周五\nobreak、周六的低价日\nobreak，验证了第 3 节发现的周内电价规律确有调度价值\nobreak。
+\end{enumerate}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/fig_q4_fluct.png}
+\caption{问题四\nobreak：各方案全年费用（左\nobreak）\nobreak、Q4-3 各调整方案对比（中\nobreak）\nobreak、
+2025-06-21 电价与调度（右\nobreak）}
+\label{fig:q4}
+\end{figure}
+
+\subsection{指定日期结果（问题四之三\nobreak）}
+
+\begin{table}[htbp]
+\centering
+\caption{问题四之三\nobreak：指定日期关键时段计划购电量\nobreak、全天购电量与费用（表 1 格式\nobreak，kWh/元\nobreak）}
+\label{tab:q4t1}
+\zihao{-5}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+时间段 & 2025-03-20 & 2025-06-21 & 2025-09-23 & 2025-12-21 \\
+\midrule
+10:00-10:10 & 0.00 & 0.00 & 0.00 & 0.00 \\
+12:00-12:10 & 525.89 & 0.00 & 351.76 & 983.64 \\
+14:00-14:10 & 0.00 & 0.00 & 0.00 & 0.00 \\
+16:00-16:10 & 664.97 & 189.42 & 582.12 & 870.07 \\
+18:00-18:10 & 698.46 & 480.51 & 0.00 & 713.64 \\
+20:00-20:10 & 39.95 & 0.00 & 0.00 & 0.00 \\
+\midrule
+全天购电量 & 69\,173.49 & 36\,454.79 & 69\,375.06 & 95\,861.19 \\
+全天购电费 & 43\,023.73 & 17\,986.34 & 45\,041.43 & 71\,800.73 \\
+调整后全天购电量 & 66\,331.35 & 36\,073.13 & 66\,504.76 & 95\,664.07 \\
+调整后购电相关费 & 42\,913.72 & 17\,851.05 & 44\,292.64 & 72\,906.70 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{问题四之三\nobreak：指定日期最终储能充放电量与 0:00\nobreak、24:00 储电量（表 2 格式\nobreak，kWh\nobreak）}
+\label{tab:q4t2}
+\zihao{-5}
+\begin{tabular}{@{}lcccccccc@{}}
+\toprule
+\multirow{2}{*}{时间段} & \multicolumn{2}{c}{2025-03-20} & \multicolumn{2}{c}{2025-06-21} & \multicolumn{2}{c}{2025-09-23} & \multicolumn{2}{c}{2025-12-21} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+ & 充电 & 放电 & 充电 & 放电 & 充电 & 放电 & 充电 & 放电 \\
+\midrule
+0:00--4:00 & 133.26 & 208.53 & 105.27 & 7499.84 & 337.73 & 129.13 & 86.04 & 141.29 \\
+4:00--8:00 & 64.93 & 6272.75 & 1294.94 & 1733.91 & 120.17 & 6639.28 & 119.65 & 854.04 \\
+8:00--12:00 & 3949.46 & 2319.25 & 9999.48 & 0.00 & 5347.84 & 1896.62 & 5239.03 & 7811.29 \\
+12:00--16:00 & 6357.39 & 331.68 & 0.00 & 0.00 & 5499.77 & 428.08 & 7612.75 & 1769.94 \\
+16:00--20:00 & 189.99 & 5912.49 & 0.00 & 5767.17 & 95.70 & 5647.84 & 14.16 & 5917.13 \\
+20:00--24:00 & 10\,711.67 & 2304.97 & 10\,195.45 & 2491.14 & 10\,616.52 & 2983.84 & 10\,666.67 & 2734.34 \\
+\midrule
+0:00 储电量 & \multicolumn{2}{c}{10\,800.00} & \multicolumn{2}{c}{10\,800.00} & \multicolumn{2}{c}{10\,617.22} & \multicolumn{2}{c}{10\,800.00} \\
+24:00 储电量 & \multicolumn{2}{c}{10\,788.62} & \multicolumn{2}{c}{10\,800.00} & \multicolumn{2}{c}{10\,738.99} & \multicolumn{2}{c}{10\,800.00} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{问题四之三\nobreak：指定日期紧急购电时间段与购电量（表 3 格式\nobreak，kWh\nobreak）}
+\label{tab:q4t3}
+\zihao{-5}
+\begin{tabular}{@{}llll@{}}
+\toprule
+2025-03-20（合计 551.79\nobreak） & 2025-06-21 & 2025-09-23（合计 439.76\nobreak） & 2025-12-21（合计 274.97\nobreak） \\
+\midrule
+9:00-10:00\ 458.12 & \multicolumn{1}{c}{无紧急购电} & 18:20-18:40\ 3.91 & 10:30-10:50\ 166.78 \\
+20:30-20:40\ 80.44 &  & 20:10-20:40\ 325.80 & 20:30-20:40\ 108.19 \\
+21:20-21:40\ 13.23 &  & 20:50-21:10\ 98.80 &  \\
+ &  & 21:20-21:30\ 11.25 &  \\
+\bottomrule
+\end{tabular}
+\end{table}

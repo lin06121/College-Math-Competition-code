@@ -1,0 +1,122 @@
+\section{方法比较与灵敏度分析}
+\label{sec:compare}
+
+\subsection{方法对照汇总}
+
+本文对每个问题都实现了多种方法并做对照（\cref{tab:allcmp}\nobreak）\nobreak。
+需要强调\nobreak：\textbf{所有方法都在同一“因果口径\nobreak”下评价}——0:00 只用历史信息（与 0:00 已发布的预报\nobreak）
+制定计划\nobreak，日内按第 \ref{sec:q2} 节的实时平衡控制规则结算（式 \eqref{eq:clip}--\eqref{eq:socrec}\nobreak）\nobreak，
+因此表中每一行的数字都是\textbf{可实行的策略}在同一信息结构下的成绩\nobreak，不存在“事后调整\nobreak”带来的虚优\nobreak。
+
+\begin{table}[htbp]
+\centering
+\caption{全部方法的对照汇总（单位\nobreak：元\nobreak；问题二起统一采用因果口径实时平衡结算\nobreak）}
+\label{tab:allcmp}
+\zihao{-5}
+\begin{tabularx}{\textwidth}{@{}p{1.5cm}Xrrr@{}}
+\toprule
+问题 & 方法 & 费用 & 相对采用方案 & 结论 \\
+\midrule
+\multirow{3}{*}{一}
+& \textbf{线性规划（采用\nobreak）} & \textbf{35\,126.95} & --- & 精确最优 \\
+& 贪心配对启发式 & 42\,187.93 & $+20.1\text{\%}$ & 忽略时序约束仍更差 \\
+& 无储能基线 & 48\,052.05 & $+36.8\text{\%}$ & 储能价值 26.9\% \\
+\midrule
+\multirow{9}{*}{二}
+& \textbf{升级预测模型（采用\nobreak）} & \textbf{13\,655\,835} & --- & 距下界 136.9 万 \\
+& 原依据（同类日均值 $+$ 近 4 日光伏\nobreak） & 13\,848\,183 & $+1.41\text{\%}$ & 预测依据升级前 \\
+& 附件1 典型日曲线计划 & 18\,318\,686 & $+34.1\text{\%}$ & 忽略日际变化 \\
+& 无储能 & 18\,155\,061 & $+32.9\text{\%}$ & 储能价值 449.9 万 \\
+& 昨日外推 + 报童 $q=0.6$ & 21\,491\,755 & $+57.4\text{\%}$ & 仅用昨日信息 \\
+& 昨日外推 + 报童 $q=0.8$ & 21\,789\,429 & $+59.6\text{\%}$ & 裕度过大 \\
+& 昨日外推（无裕度\nobreak） & 22\,515\,792 & $+64.9\text{\%}$ & 朴素外推 \\
+& 两阶段随机规划 SAA & 39\,954\,010 & $+192.6\text{\%}$ & 见下文失效分析 \\
+& 天眼链式下界 & 12\,286\,531 & $-10.0\text{\%}$ & 不可达 \\
+\midrule
+\multirow{5}{*}{三}
+& \textbf{升级预测\nobreak、全时刻滚动（采用\nobreak）} & \textbf{13\,368\,415} & --- & 距下界 108.2 万 \\
+& 仅 0:00 计划（不调整\nobreak） & 14\,534\,449 & $+8.72\text{\%}$ & 调整价值 116.6 万 \\
+& 仅 6:00 调整 & 14\,110\,726 & $+5.55\text{\%}$ & 只值 42.4 万 \\
+& 仅 12:00 调整 & 13\,750\,895 & $+2.86\text{\%}$ & 只值 78.4 万 \\
+& 天眼链式下界 & 12\,286\,531 & $-9.5\text{\%}$ & 不可达 \\
+\midrule
+\multirow{5}{*}{四}
+& \textbf{Q4-2 预测电价 + 平衡规则（采用\nobreak）} & \textbf{14\,386\,351} & --- & 储能价值 445.9 万 \\
+& Q4-2 电价模型改用廓线堆叠（对照\nobreak） & 14\,362\,780 & $-0.16\text{\%}$ & 预测精度更优 \\
+& Q4-2 0:00 已知实际电价（上界\nobreak，不可达\nobreak） & 14\,339\,252 & $-0.33\text{\%}$ & 电价未知代价 4.7 万 \\
+& Q4-2 无储能 & 18\,844\,994 & $+30.99\text{\%}$ & 储能价值对照 \\
+& Q4-3 全时刻滚动（采用\nobreak） & 14\,101\,772 & $-1.98\text{\%}$ & 调整价值 119.1 万 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+由\cref{tab:allcmp} 可见\nobreak：\textbf{“升级预测模型（分类组合负荷 $+$ 岭回归堆叠光伏\nobreak）$+$
+报童安全裕度 $+$ LP 计划 $+$ 0:00 定下的平衡响应规则（问题三再叠加全时刻滚动调整\nobreak）\nobreak”的组合
+在所有可比方案中费用最低}\nobreak，且距不可达的天眼下界仅 9.5\%\nobreak。三个值得强调的结论\nobreak：
+
+\begin{enumerate}[label=(\arabic*), leftmargin=2.2em, itemsep=1pt]
+\item \textbf{用统计/机器学习方法提升预测精度\nobreak，比引入更多预报时刻更有效}\nobreak：
+把 0:00 依据从“近 4 个同类日均值 + 近 4 日光伏均值\nobreak”升级为“水平$\times$形状分类组合 +
+岭回归堆叠\nobreak”\nobreak，问题二费用由 13\,848\,183 元降到 \textbf{13\,655\,835 元}（$-1.39\text{\%}$\nobreak）\nobreak；
+而在此基础上\nobreak，6:00/18:00 的预报都不值得引入（\cref{tab:q3cmp}\nobreak）\nobreak。
+\item \textbf{“只在 0:00 决策一次\nobreak”与“用储能实时兜底\nobreak”并不矛盾}\nobreak：平衡响应规则本身在 0:00
+就已冻结（式 \eqref{eq:clip}--\eqref{eq:socrec} 不含任何未来信息\nobreak，也不需要日内重新优化\nobreak）\nobreak，
+它只是把“计划—实际\nobreak”的偏差按“先调计划充放\nobreak、再动用储能\nobreak”的优先级消化\nobreak。
+若改为\textbf{僵硬执行计划}（缺口全部按 5 倍紧急购电\nobreak）\nobreak，全年费用升至 14\,557\,730 元\nobreak，
+即这条 0:00 定下的规则价值 \textbf{90.2 万元（$+6.60\text{\%}$\nobreak）}\nobreak。
+\item \textbf{“已知实时电价\nobreak”并非最优假设}\nobreak：用 MAE $=0.0367$ 元/kWh 的电价预测替代“已知电价\nobreak”\nobreak，
+结算按实际电价\nobreak，全年反而低 0.20\%（\cref{tab:q4cmp}\nobreak）\nobreak，说明计划阶段过度追价会损害兜底能力\nobreak。
+\end{enumerate}
+
+\textbf{SAA 失效机理分析}\nobreak。本文将 0:00 计划建模为两阶段随机规划\cite{vtpp}\nobreak：
+以最近 20 天的实测（负载\nobreak、光伏\nobreak）曲线为等概率情景\nobreak，决策计划购电量 $P^0$
+使“计划费 $+$ 期望紧急费\nobreak”最小\nobreak。结果显示（\cref{tab:allcmp}\nobreak）该方案全年费用高达
+39\,954\,010 元（比采用方案高 192.6\%\nobreak）\nobreak，其中计划购电费仅 875.3 万元（比采用方案低 32\%\nobreak）\nobreak、
+紧急购电费却达 3\,120.1 万元（紧急电量 6.93 GWh\nobreak，是可执行方案的 54 倍\nobreak）\nobreak。
+原因是\textbf{情景内的储能自由度被重复利用}\nobreak：在 20 个情景中储能都能从当日初始电量出发\nobreak、
+以各情景自身最优的方式兜底\nobreak，故情景内紧急购电几乎为零\nobreak，优化器据此大幅压低 $P^0$\nobreak；
+而真实日的偏差一旦同时差于多数情景\nobreak，储能已被当日调度消耗\nobreak，只能购买 5 倍紧急电\nobreak。
+这提示\nobreak：\textbf{小样本经验情景下的随机规划会产生系统性乐观偏差\nobreak，
+在“计划—紧急\nobreak”强惩罚机制下反而不如稳健的报童裕度}\nobreak；
+若要用随机规划\nobreak，必须对“储能可复用性\nobreak”与“情景外偏差\nobreak”做显式修正\nobreak。
+
+\subsection{参数灵敏度分析}
+
+\begin{table}[htbp]
+\centering
+\caption{灵敏度分析（全部在升级预测口径下重算\nobreak；单位\nobreak：元\nobreak）}
+\label{tab:sens}
+\zihao{-5}
+\begin{tabularx}{\textwidth}{@{}p{2.3cm}p{2.9cm}rRL@{}}
+\toprule
+扰动项 & 变动方式 & 基准 & 变动后 & 相对变化 \\
+\midrule
+储能放电下限 & 物理下限 1200 $\to$ 2200 / 4000 kWh（1 月\nobreak） & 1\,237\,127 & 1\,392\,750 / 1\,843\,118 & $+12.6$ / $+49.0\text{\%}$ \\
+报童分位偏低 & $q=0.7\to0.5/0.6$ & 13\,655\,835（全年\nobreak） & 14.79 / 14.05 M & $+8.27$ / $+2.91\text{\%}$ \\
+报童分位偏高 & $q=0.7\to0.8/0.9$ & 13\,655\,835 & 13.62 / 13.93 M & $-0.28$ / $+1.98\text{\%}$ \\
+充放电效率口径 & 单程 0.9/0.9（往返 81\%\nobreak）$\to$ 往返 0.9（单程 0.9487\nobreak） & 13\,655\,835 & 13\,191\,041 & $-3.40\text{\%}$ \\
+结算方式 & 实时平衡控制 $\to$ 僵硬执行计划 & 13\,655\,835 & 14\,557\,730 & $+6.60\text{\%}$ \\
+偏差计价口径 & 差额计价（B\nobreak，采用\nobreak）$\to$ 计划全额 $+$ 罚（A\nobreak） & 13\,368\,415（问题三\nobreak） & 13\,572\,179 & $+1.52\text{\%}$ \\
+电价信息 & 0:00 已知实际电价（上界\nobreak，不可达\nobreak）$\to$ 用预测电价（甲\nobreak） & 14\,339\,252（Q4-2\nobreak） & 14\,386\,351 & $+0.33\text{\%}$ \\
+日末残值系数 & $v=0.9\bar p$ $\to$ $v=0$（日末清空\nobreak） & 1\,218\,659（2 月\nobreak） & 1\,214\,270 & $-0.36\text{\%}$ \\
+日末储电量 & 自由 $\to$ 日末 SOC $=$ 日初（等式\nobreak） & 1\,218\,659（2 月\nobreak） & 1\,215\,187 & $-0.28\text{\%}$ \\
+安全裕度形式 & 经验分位 $\to$ 正态/分噪声/60 天/90 天窗 & 13\,655\,835 & 13.73 / 13.59 / 13.66 / 13.68 M & $+0.58$ / $-0.52$ / $+0.03$ / $+0.16\text{\%}$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{灵敏度结论}\nobreak：
+\begin{enumerate}[label=(\arabic*), leftmargin=2.4em, itemsep=1pt]
+\item 结论对\textbf{储能放电下限}（$+12.6\text{\%}$ 以上\nobreak）\nobreak、\textbf{报童分位偏低}
+（$q=0.5$ 时 $+8.27\text{\%}$\nobreak）\nobreak、\textbf{结算方式}（$+6.60\text{\%}$\nobreak）与
+\textbf{效率口径}（$-3.40\text{\%}$\nobreak）较敏感\nobreak。前两者是本文的决策变量\nobreak，已用 1 月数据标定\nobreak；
+结算方式与计价口径已在第 \ref{sec:assume} 节假设中显式声明\nobreak；
+效率口径的敏感性说明\textbf{“储能损耗越低\nobreak、收益越高\nobreak”}\nobreak，本文采用的“单程 0.9\nobreak”
+是附件1 给出的最保守读法\nobreak，故结果偏保守\nobreak。
+\item 结论对\textbf{残值系数}\nobreak、\textbf{日末储电量约束}\nobreak、\textbf{偏差计价口径}\nobreak、
+\textbf{电价信息}与\textbf{安全裕度形式}不敏感（均 $<1\text{\%}$\nobreak）\nobreak，
+说明模型不依赖人为参数微调\nobreak；其中分噪声叠加形式略优 0.52\%\nobreak，
+但它需要分别估计负荷与光伏两套误差分布\nobreak、参数更多\nobreak，本文保留理论更直接的净残差经验分位\nobreak。
+\item 全部“复杂化\nobreak”尝试（典型日曲线\nobreak、昨日外推\nobreak、显式季节项\nobreak、条件分位回归缓冲\nobreak、
+两阶段随机规划\nobreak）都\textbf{未能降低成本}\nobreak，说明本文方案已处于该信息结构下的效率前沿\nobreak。
+\end{enumerate}

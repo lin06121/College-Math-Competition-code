@@ -1,0 +1,81 @@
+\section{模型评价与推广}
+
+\subsection{模型优点}
+
+\begin{enumerate}[label=(\arabic*), leftmargin=2.2em, itemsep=2pt]
+\item \textbf{机理完备\nobreak、物理可行}\nobreak。模型显式刻画了逐时段功率平衡（并允许弃光\nobreak，避免高光伏低负荷日无解\nobreak）\nobreak、
+储能 SOC 递推（单程 90\% 效率\nobreak、往返 81\%\nobreak）\nobreak、充放电功率与 SOC 双向限幅\nobreak。
+全部解经物理复检\nobreak：功率平衡残差 $\le1.1\times10^{-13}$ kWh\nobreak，SOC 始终位于 $[1200,10800]$\nobreak，
+无同时充放电时段\nobreak，充放电均未越限\nobreak。
+\item \textbf{决策全部由 LP 精确求解}\nobreak。四问共约 4000 个线性规划（全年 365 天 $\times$ 多场景\nobreak）\nobreak，
+均在秒级内求得全局最优\nobreak；对照实验证明启发式在本问题中明显劣于 LP（典型日贵 20.1\%\nobreak）\nobreak。
+\item \textbf{预测模型是本题最大的杠杆\nobreak，且用“可分解 + 可堆叠\nobreak”的方式实现}\nobreak：
+负载用“水平$\times$形状分解 + 周五六/其他分类凸组合\nobreak”（MAE 137.5 $\to$ 132.3 kW\nobreak，
+其中周五六 $-8.0\%$\nobreak、其余五天 $-1.8\%$\nobreak）\nobreak，光伏用“因果岭回归堆叠\nobreak”
+（MAE 152.0 $\to$ 136.9 kW\nobreak，$-9.9\%$\nobreak）\nobreak；问题四的电价用“\textbf{周周期加权结构模型 + LightGBM 残差修正\nobreak}”
+（MAE 0.0540 $\to$ 0.0451 元/kWh\nobreak，且全部因果\nobreak）\nobreak；全年费用由 13\,848\,183 元降到 \textbf{13\,655\,835 元}\nobreak。
+\item \textbf{用预言机分解量化信息价值}\nobreak。把距完全信息下界的 136.9 万元缺口分解为
+光伏噪声 49.1 万元（35.9\%\nobreak）\nobreak、负荷噪声 42.4 万元（31.0\%\nobreak）\nobreak、交互 33.2\%\nobreak，
+据此判断“把预算投在实时平衡控制上比投在更复杂的预测模型上更划算\nobreak”\nobreak：
+实时平衡控制相对僵硬执行省下 90.2 万元\nobreak，与“完美预知全部噪声\nobreak”的理论上限 91.5 万元同量级\nobreak，
+而后者不可能实现\nobreak。
+\item \textbf{计划与结算分开建模\nobreak，保证策略可实行}\nobreak。0:00 计划只用历史信息\nobreak，
+日内结算用第 \ref{sec:q2} 节的\textbf{实时平衡控制规则}（只用当前实测与当前储电量\nobreak）\nobreak，
+两层模型独立求解\nobreak，决策者的信息集随时间单调增长\nobreak，
+从机制上排除了“用未来数据事后调整计划\nobreak”的虚优（\cref{tab:q2exec} 给出同一计划三种执行方式的对照\nobreak）\nobreak。
+\item \textbf{结果可复现\nobreak、可核查}\nobreak。全部结果由 40 余个 Python 脚本（提交材料“代码\nobreak”部分\nobreak）
+从原始附件自动生成\nobreak，输出的 5 个结果文件与附件5 模板逐单元格对齐\nobreak；
+论文中每个数字都可回溯到脚本与中间数据\nobreak。另有两条独立的正确性证据\nobreak：
+①\textbf{审计程序}（\texttt{audit\_results.py}\nobreak）不依赖任何中间变量\nobreak，直接重读 5 个结果文件\nobreak，
+用附件2/附件4 的原始实测逐时段复算功率平衡\nobreak、SOC 递推\nobreak、充放电功率与 SOC 上下限\nobreak、
+四段计价费用\nobreak，四问全部通过\nobreak；
+②\textbf{求解器稳健性对照}（\texttt{solver\_robustness\_final.py}\nobreak）把同一条管道分别交给
+HiGHS 对偶单纯形与内点法求解\nobreak，问题二/问题三费用相对差 $<0.1\%$\nobreak，
+说明结论不依赖“返回了哪一个最优顶点\nobreak”\nobreak。
+\end{enumerate}
+
+\subsection{模型缺点与局限}
+
+\begin{enumerate}[label=(\arabic*), leftmargin=2.2em, itemsep=2pt]
+\item \textbf{已观测信息只用到“储电量\nobreak”与“电价\nobreak”，未反馈到负荷/光伏的剩余时段预报}\nobreak。
+本文已把两处\textbf{已观测}信息接入决策\nobreak：①每次调整以上一段\textbf{实际执行后的储电量}为起点（而非 LP 理想轨迹\nobreak）\nobreak；
+②问题四在 6:00/12:00/18:00 用\textbf{当日已实现电价}的误差滚动修正后续价格预测\nobreak。
+但当日已发生的\textbf{负荷/光伏}实测偏差仍只用于结算\nobreak，未回写去校正剩余时段的负荷/光伏预报\nobreak；
+若按“已观测 + 预报\nobreak”分段重估\nobreak，可望进一步降低紧急购电\nobreak。
+\item \textbf{紧急购电未设功率上限}\nobreak。题面未给出外网联络线容量\nobreak，本文按不限功率处理\nobreak；
+若存在容量约束\nobreak，需在结算模型中加 $E^{\text{急}}_t\le \bar E$\nobreak，此时高光伏波动日的
+缺口可能无法完全消除\nobreak，模型需引入切负荷变量并重新定义可行域\nobreak。
+\item \textbf{日末残值用“次日平均电价\nobreak”近似}\nobreak。严格的滚动时域应求解跨日耦合的多日联合优化\nobreak；
+本文用残值系数 $v=0.9\bar p$ 近似值函数\nobreak，灵敏度分析表明该近似对结果影响 $<0.3\text{\%}$\nobreak。
+\item \textbf{储能参数未做容量-功率联合优化}\nobreak。本文以附录1 给定的 12000 kWh / 5000 kW 为常量\nobreak，
+而实际规划中储能容量本身是可决策变量（投资成本与运行收益的权衡\nobreak）\nobreak。
+\item \textbf{未考虑电池寿命与爬坡约束}\nobreak。全时刻滚动下每天最多 3 次调整\nobreak，充放切换比“只在 0:00 决策\nobreak”更频繁\nobreak，
+频繁浅充放会加速容量衰减\nobreak，本文按理想储能处理\nobreak，未把等效循环次数计入成本\nobreak。
+\item \textbf{偏差基准（相对谁计价\nobreak）是一种口径选择}\nobreak。题面“计划购电量高于调整购电量的部分违约\nobreak”
+两种读法都成立\nobreak：相对 \textbf{0:00 原始计划\nobreak} 或相对\textbf{上一次调整后的量\nobreak}。本文取前者\nobreak，
+使偏差始终相对“计划报出量\nobreak”结算（详见第 \ref{sec:q3} 节\nobreak）；若改为后者\nobreak，偏差费用会更小\nobreak，
+但“计划量不可更改\nobreak”的题面假设会被削弱\nobreak。
+\item \textbf{问题二与问题三使用不同的报童分位}\nobreak。问题二标定得 $q^*=0.7$\nobreak、问题三标定得 $q_3^*=0.6$（均只用 1 月数据\nobreak）\nobreak。
+差异来自“不确定性被兑现的次数\nobreak”：问题三在多个时点反复调整\nobreak，等价于把同一风险多次处置\nobreak，
+故其最优安全裕度更低\nobreak。本文按两个问题分别标定\nobreak，代价是失去“单一分位贯穿全文\nobreak”的简洁性\nobreak。
+\end{enumerate}
+
+\subsection{模型改进与推广}
+
+\begin{enumerate}[label=(\arabic*), leftmargin=2.2em, itemsep=2pt]
+\item \textbf{把“已观测\nobreak”信息纳入滚动决策}\nobreak：在式 \eqref{eq:adj_obj}--\eqref{eq:adj_link} 中\nobreak，
+对已经过去的时段用实测值\nobreak、对未发生的时段用预报值\nobreak，可望进一步降低紧急购电\nobreak；
+当信息价值足够大时（可用本文的预言机分解先核算\nobreak）再引入机会约束或分布鲁棒优化\nobreak，
+在“成本\nobreak”与“鲁棒性\nobreak”之间取得平衡\nobreak。
+\item \textbf{储能容量-功率联合优化}\nobreak：把 $\bar C$\nobreak、容量与 SOC 限幅作为投资决策变量\nobreak，
+目标改为“年运行费 + 年化投资费\nobreak”\nobreak，得到最优储能配置\nobreak。
+\item \textbf{需求侧响应与多微网协同}\nobreak：把可平移负载\nobreak、电动汽车\nobreak、共享储能纳入模型\nobreak，
+目标函数扩展为多微网总成本最小（可用纳什谈判/分布式优化求解\nobreak）\nobreak。
+\item \textbf{电价预测的精细化}\nobreak：本文用“周周期加权结构模型 + LightGBM 残差修正\nobreak”预测电价\nobreak，
+实测“不知道当日实际电价\nobreak”的代价仅 0.33\%（Q4-2\nobreak）与 0.47\%（Q4-3\nobreak）\nobreak；
+进一步可引入日前市场公开信息（负荷预测、机组检修、天气\nobreak）或分位数电价预测\nobreak，
+把价格不确定性显式写进报童分位\nobreak，为风险偏好不同的微网提供保守/激进两档策略\nobreak。
+\item \textbf{方法学推广}\nobreak：本文“\textbf{规律挖掘 $\to$ 依据构造 $\to$ LP 精确求解 $\to$
+储能实时平衡控制 $\to$ 信息价值核算}\nobreak”的范式\nobreak，可直接迁移到园区综合能源系统\nobreak、
+数据中心“算电协同\nobreak”\nobreak、光储充一体化电站等同类问题\nobreak。
+\end{enumerate}
