@@ -15,11 +15,12 @@ from causal_core import D, price, ROOT
 
 OUT = os.path.join(ROOT, '05_论文与结果')
 ETA_C = ETA_D = 0.9
-# 期望值(正式口径: 问题二 q*=0.7 实时平衡; 问题三/四之三 q3*=0.6 + 全时刻滚动逐段结算)
+# 期望值(提交包口径: 问题二/四之二 = 提供版实现(纯历史预测 + 报童 q*=0.8);
+#         问题三/四之三 = 原实现 q3*=0.6 + 全时刻滚动逐段结算)
 EXP = {
-    'result2.xlsx':   dict(plan=12_866_999, adj=None, em=129_289, emk=0),
+    'result2.xlsx':   dict(plan=13_193_679, adj=None, em=85_605, emk=0),
     'result3.xlsx':   dict(plan=12_730_768, adj=13_017_836, em=62_285, emk=0),
-    'result4-2.xlsx':   dict(plan=13_578_778, adj=None, em=126_882, emk=0),
+    'result4-2.xlsx':   dict(plan=13_908_066, adj=None, em=86_878, emk=0),
     'result4-3.xlsx':   dict(plan=13_436_567, adj=13_738_263, em=60_555, emk=0),
 }
 

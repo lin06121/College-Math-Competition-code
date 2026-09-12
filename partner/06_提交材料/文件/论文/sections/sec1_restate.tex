@@ -36,19 +36,23 @@
 \centering
 \caption{原始数据与储能参数清单}
 \label{tab:data}
-\zihao{-5}
-\begin{tabularx}{\textwidth}{@{}p{1.5cm}p{2.4cm}p{6.2cm}X@{}}
+\begingroup
+\zihao{5}                              % 小五(9pt) -> 五号(10.5pt)
+\setlength{\tabcolsep}{3pt}            % 列间距 5pt -> 3pt，省出的宽度给“内容”列
+\renewcommand{\arraystretch}{1.05}     % 行距 1.15 -> 1.05，压紧行高
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{1.05cm}>{\raggedright\arraybackslash}p{5.35cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.15cm}@{}}
 \toprule
 来源 & 内容 & 结构 & 单位与口径 \\
 \midrule
-附件1 & 电价\nobreak、小区负载\nobreak、光伏预测功率 & 单典型日 144 个 10 分钟时段（列头为区间结束时刻\nobreak，如表头 \texttt{00:10} 表示 0:00--0:10\nobreak） & 元/kWh\nobreak；kW\nobreak；kW \\
+附件1 & 电价\nobreak、小区负载\nobreak、光伏预测功率 & 单典型日 144 个 10 分钟时段（列头为区间结束时刻\nobreak，如表头 \texttt{00:10} 表示 0:00--0:10\nobreak） & 元/kWh\nobreak；\newline kW\nobreak；kW \\
 附录1 & 储能参数 & 最大容量 12000 kWh\nobreak；最大充放电功率 5000 kW\nobreak；SOC 限幅 1200--10800 kWh\nobreak；2025-01-01 0:00 储电量 6000 kWh\nobreak；充放电效率 90\% & kWh\nobreak、kW \\
-附件2 & 小区负载\nobreak、光伏发电实际功率 & 2025-01-01 至 12-31\nobreak，365 天 $\times$ 144 时段（两张工作表\nobreak） & kW \\
-附件3 & 光伏发电预报 & 365 天 $\times$ 4 个发布时刻（0:00/6:00/12:00/18:00\nobreak）$\times$ 未来 24 个整点 & kW \\
-附件4 & 实时电价 & 2025-01-01 至 12-31\nobreak，365 天 $\times$ 144 时段 & 元/kWh \\
+附件2 & 小区负载\nobreak、光伏发电实际功率 & 2025-01-01 至 12-31\newline 365 天 $\times$ 144 时段（两张工作表\nobreak） & kW \\
+附件3 & 光伏发电预报 & 365 天 $\times$ 4 个发布时刻\newline （0:00/6:00/12:00/18:00\nobreak）\newline $\times$ 未来 24 个整点 & kW \\
+附件4 & 实时电价 & 2025-01-01 至 12-31\newline 365 天 $\times$ 144 时段 & 元/kWh \\
 附件5 & 结果模板 & result1/2/3/4-2/4-3.xlsx & kWh\nobreak、元 \\
 \bottomrule
 \end{tabularx}
+\endgroup
 \end{table}
 
 数据核验表明\nobreak：附件1/2/4 无缺失值\nobreak、无负值\nobreak；附件3 的 1095 个空值全部为每日第 2--4 行

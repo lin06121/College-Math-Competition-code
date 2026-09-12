@@ -706,65 +706,68 @@ E_1=E_{145}=6000\ \text{kWh}.\label{eq:q1end}
 \section{问题二：全年逐日“计划—结算”两阶段模型}
 \label{sec:q2}
 
-\subsection{信息结构与我方预测模型}
+\subsection{模型基础}
 
-问题二要求“在每天 0:00 制定当天的计划购电策略”，而 0:00 无法获得当日实测数据，
-因此计划阶段要求建立在由\textbf{历史实测}(当天之前的数据)构造的预测之上，
-当日实测数据只用于结算阶段。结合第 3 节的周内规律（周五、周六用电低 36.8\%），
-本文构造了一组\textbf{可分解、可堆叠}的预测模型，并用同一套因果管道逐项验证
-（全部超参只在 1 月标定，2--12 月为外样本）。
+问题二要求在每天 0:00 制定当天的计划购电策略。0:00 时当日实测数据尚未发生，
+故计划只能依据\textbf{由历史数据构造的预测}，当日实测仅用于结算。本文按因果口径
+（第 $d$ 天只用 $d$ 之前的信息）建立逐时段预测模型，
 
-\textbf{（1）负载预测：水平$\times$形状分解 + 分类组合}。记第 $d$ 天第 $t$ 时段负载为 $L_d(t)$。
-把“日总量（水平）”与“日内曲线（形状）”分开建模：
+记第 $d$ 天第 $t$ 时段的小区负载与光伏分别为 $L_d(t)$、$PV_d(t)$，其差
+\begin{equation}
+N_d(t)=L_d(t)-PV_d(t)
+\label{eq:netload}
+\end{equation}
+称为\textbf{净需求}。
+
+\textbf{（1）负载预测：水平--形状分解与同类日凸组合}。将日负载分解为“日总量（水平）”与
+“日内归一化曲线（形状）”两部分，使形状能从较多历史日稳定估计，水平只跟踪近期规模变化。
+记 $\sigma_c(t)=L(t)/\sum_{t'}L(t')$（$\sum_t\sigma_c(t)=1$），基准预测取
 \begin{equation}
 L_d(t)=\underbrace{\Lambda_d}_{\text{水平}}\cdot\underbrace{\sigma_{c(d)}(t)}_{\text{形状}},\qquad
 \Lambda_d=\frac{1}{4}\sum_{\tau\in H_d}\sum_{t}L_\tau(t),
 \label{eq:basisL}
 \end{equation}
-其中 $H_d$ 为最近 4 个\textbf{同类日}（周五、周六记为“低”类 $c(d)=\text{L}$，其余五天记为“高”类），
-$\sigma_{c}(t)$ 为同类日近 6 天归一化曲线（$L/\sum_tL$）的均值。
-另构造\textbf{递推水平平滑}（对“昨日实际/预测总量比”做指数平滑，$\alpha=0.35$，限幅 $[0.85,1.15]$）
-与\textbf{全局误差反馈}（近 3 日实测/预测比阻尼校正）两个候选，最后\textbf{按两类分别做凸组合}，
-权重在 1 月标定集上网格搜索：
+其中 $H_d$ 为最近 4 个同类日。由第 3 节规律一，周五、周六用电明显偏低，故按星期分为\textbf{低类}
+（周五、周六，$c=\mathrm L$）与\textbf{高类}（其余五天，$c=\mathrm H$），水平与形状均在同类日内取样本，
+$\sigma_c(t)$ 取同类日近 6 天归一化曲线的均值。另设递推水平平滑（对“昨日实际/预测总量比”做指数平滑，
+$\alpha=0.35$，限幅 $[0.85,1.15]$）与全局误差反馈（近 3 日实测/预测比的阻尼校正）两个候选，
+按两类日分别做凸组合：
 \begin{equation}
 \hat L_d(t)=\sum_{k=1}^{4}w^{c(d)}_k\,g_k(t),\qquad
 w^{\text{L}}=(0,\,0.3,\,0.7,\,0),\quad w^{\text{H}}=(0,\,1.0,\,0,\,0),
 \label{eq:loadweights}
 \end{equation}
-即\textbf{周五/周六以“递推水平$\times$同类形状”为主（0.7），其余五天用“同类日水平$\times$形状”（1.0）}。
-该结构使两类日子的误差同时下降（见 \cref{tab:fcacc}），这是“不分周五六的稳健统计”
-（近 5 日中位数、近 5 日加权平均）误差高达 652$\sim$1056\,kW 的反证。
+权重在 1 月标定集上网格搜索。式 \eqref{eq:loadweights} 表明，周五、六以“递推水平$\times$同类形状”为主，
+其余五天用“同类日水平$\times$形状”。该模型负载预测 MAE（平均绝对误差）为 132.28\,kW（\cref{tab:fcacc}）；
+相比不区分周五、周六的两种稳健统计（近 5 日中位数、近 5 日加权平均）的MAE 为 652$\sim$1056\,kW，明显更低。
 
-\textbf{（2）光伏预测：因果岭回归堆叠}。以 4 个基模型为输入：
-近 4 日均值 $b_1$、误差反馈 $b_2$（近 2 日实测/预测比阻尼校正）、
-LightGBM $b_3$（30 维特征：时段、星期、年内谐波、滞后与滚动的光伏/负载/电价、附件3 预报）、
-以及\textbf{附件3 的 0:00 发布预报} $b_4$；用带时段与类别交互项的\textbf{岭回归}在历史样本上
-（每 14 天用截至当时的样本重训，保证因果）学习最优权重：
+\textbf{（2）光伏预测：因果岭回归堆叠}。堆叠（stacking）先由若干基模型各自给出预测，
+再以这些预测为输入、用回归学习组合权重。记第 $k$ 个基模型的预测为 $b_k(t)$，权重由岭回归
+（带 $L_2$ 正则的最小二乘，可抑制基模型高度相关时的系数不稳定）估计：
 \begin{equation}
-\begin{aligned}
-\widehat{PV}_d(t)&=\beta_0+\sum_{k=1}^{4}\beta_k\,b_k(t)+\beta_5\tau+\beta_6\mathbb{1}_{\text{L}}
-+\beta_7\tau\mathbb{1}_{\text{L}},\\
-\bm\beta&=\arg\min_{\bm\beta}\sum_{j<d}\sum_t\Big(\sum_k\beta_kb_k^{(j)}(t)+\cdots-PV_j(t)\Big)^2+\alpha\|\bm\beta\|^2 .
-\end{aligned}
+\bm\beta=\arg\min_{\bm\beta}\sum_{j<d}\sum_t\Big(\beta_0+\sum_{k=1}^{4}\beta_kb_k^{(j)}(t)+\beta_5\tau+\beta_6\mathbb{1}_{\text{L}}+\beta_7\tau\mathbb{1}_{\text{L}}-PV_j(t)\Big)^2+\alpha\|\bm\beta\|^2.
 \label{eq:basisPV}
 \end{equation}
-单模型都不如“近 4 日均值”（附件3 预报 206.7\,kW、晴空指数模型 213.3\,kW、
-LightGBM 151.2\,kW、近 4 日均值 152.0\,kW），
-但\textbf{堆叠后 MAE 降到 136.9\,kW（$-9.9\%$）}——收益来自多源信息的最优组合。
+式中 $\tau$ 为时段归一化变量、$\mathbb{1}_{\text L}$ 为低类日指示变量，交互项 $\tau\,\mathbb{1}_{\text L}$
+允许形状在两类日上不同；回归只用 $j<d$ 的样本，每 14 天用截至当时的样本重训。四个基模型为：
+近 4 日均值 $b_1$、误差反馈 $b_2$、LightGBM $b_3$（30 维特征：时段、星期、年内谐波、滞后的光伏/负载/电价、
+滚动统计量与附件3 预报）和附件3 的 0:00 发布预报 $b_4$。各单模型在 2--12 月外样本上的 MAE 为
+206.65（附件3 预报）、213.33（晴空指数模型）、151.24（LightGBM）、151.95（近 4 日均值）kW，
+堆叠后为 136.85\,kW。
 
-\textbf{（3）电价预测（问题四的核心输入）}：本文采用“\textbf{可解释结构模型 + 残差修正}”：
-先利用电价的周周期特征，用前几周同一时刻的历史电价加权预测
+\textbf{（3）电价预测（问题四输入）}。问题二、三使用附件1 的固定典型日电价，无需预测；
+问题四中电价逐日波动，需在 0:00 预测当天各时段电价。电价有周周期，先以最近若干同星期日的电价加权平均，
 \begin{equation}
 \hat p_{d,t}=w_1p_{d-7,t}+w_2p_{d-14,t}+w_3p_{d-21,t},\qquad w_1+w_2+w_3=1,
 \label{eq:qp}
 \end{equation}
-权重 $w$ 只用目标日之前的历史拟合（本文按\textbf{目标日的星期}分别拟合，$\bar w=[0,\,0.94,\,0.06]$）；
-残差 $r_{d,t}=p_{d,t}-\hat p^{base}_{d,t}$ 仍存在可学规律，故再用 LightGBM 因果滚动预测 $\hat r$，
-最终 $\hat p_{d,t}=\hat p^{base}_{d,t}+\hat r_{d,t}$，MAE 由 \textbf{0.0540} 降到 \textbf{0.0451 元/kWh}。
+权重按目标日星期分别拟合（$\bar w=[0,\,0.94,\,0.06]$）；再对其残差用 LightGBM 做因果滚动预测并相加，
+电价预测 MAE 由 0.0540 降至 0.0451 元/kWh。
 
 \begin{table}[htbp]
 \centering
-\caption{预测模型精度对照（2.1--12.31 外样本，单位：负荷/光伏 kW、电价 元/kWh）}
+\caption{预测模型精度对照（2.1--12.31 外样本，单位：负荷/光伏 kW、电价 元/kWh；
+MAE 为平均绝对误差，RMSE 为均方根误差，MAPE 为日总量平均绝对百分比误差）}
 \label{tab:fcacc}
 \zihao{-5}
 \begin{tabular}{@{}llccc@{}}
@@ -796,21 +799,27 @@ LightGBM 151.2\,kW、近 4 日均值 152.0\,kW），
 \end{tabular}
 \end{table}
 
-\textbf{（4）报童安全裕度}。定义净需求预测残差
-$e_d(t)=\big(L_d(t)-\hat L_d(t)\big)-\big(PV_d(t)-\widehat{PV}_d(t)\big)$，
-计划所用的“计划净需求”为预测加裕度：
+\textbf{（4）报童安全裕度}。计划购电量由 0:00 一次性下达，而实际净需求会因预测误差偏离预测值：
+计划偏低时缺口须以 5 倍电价紧急购电，计划偏高时多购电量仍按基准价支付却无法使用。故计划值应在预测值上
+预留裕度，以平衡两类损失。该权衡即报童模型，最优订货量为需求分布的 $c_u/(c_u+c_o)$ 分位数，
+$c_u$、$c_o$ 分别为单位缺货与积压损失。定义净需求预测残差
+\begin{equation}
+e_d(t)=\big(L_d(t)-\hat L_d(t)\big)-\big(PV_d(t)-\widehat{PV}_d(t)\big),
+\label{eq:resid}
+\end{equation}
+计划净需求取预测值与裕度之和
 \begin{equation}
 \tilde N_d(t)=\hat L_d(t)-\widehat{PV}_d(t)+b_d(t),\qquad
-b_d(t)=\mathrm{Quantile}_{q}\big(\{e_\tau(t)\}_{\tau\in\text{近30天}}\big).
+b_d(t)=\mathrm{Quantile}_{q}\big(\{e_\tau(t)\}_{\tau\in\text{近30天}}\big),
 \label{eq:buffer}
 \end{equation}
-分位水平 $q$ 由报童模型\cite{newsboy}确定：购电偏少的额外代价为紧急电价与基准电价之差 $c_u=5p-p=4p$，
-购电偏多的代价为基准电价 $c_o=p$，故理论最优服务水平
+裕度取近 30 天同时段残差的 $q$ 分位数。计划偏低时每 kWh 多付 $c_u=5p-p=4p$，计划偏高时 $c_o=p$，故
 \begin{equation}
-q^*=\frac{c_u}{c_u+c_o}=\frac{4p}{4p+p}=0.8 .
+q^*=\frac{c_u}{c_u+c_o}=\frac{4p}{4p+p}=0.8 ,
 \label{eq:newsboy}
 \end{equation}
-但由于日内实时平衡控制已能吸收大部分意外偏差，实测最优分位低于理论值：在 1 月标定集上
+即在不计日内调节时，计划净需求应取残差的 0.8 分位数。实际执行中，第 \ref{sec:q2} 节的实时平衡控制
+会用储能吸收部分偏差，最优分位低于 0.8；在 1 月标定集上扫描得
 \begin{equation}
 \begin{aligned}
 &\mathrm{Cost}_{1\text{月}}(q=0.5/0.6/\textbf{0.7}/0.8/0.9)\\
@@ -818,10 +827,10 @@ q^*=\frac{c_u}{c_u+c_o}=\frac{4p}{4p+p}=0.8 .
 \end{aligned}
 \label{eq:qtune}
 \end{equation}
-故取 $\bm{q^*=0.7}$，并在 2--12 月做外样本评估；储能放电下限取物理下限
-$\underline E=1200$ kWh（第 \ref{sec:compare} 节给出裕度形式与分位水平的敏感性）。
+费用在 $q=0.7$ 处最低，取 $q^*=0.7$，并在 2--12 月做外样本评估；储能放电下限取物理下限
+$\underline E=1200$ kWh（裕度形式与分位水平的敏感性见第 \ref{sec:compare} 节）。
 
-\subsection{计划模型与结算模型（分开建模）}
+\subsection{模型建立}
 
 \textbf{（1）0:00 计划模型}。以 $\tilde N_d$ 为输入求解式 \eqref{eq:obj}--\eqref{eq:c5}
 （其中 $\hat L$ 替换为 $\hat L+b$、$\widehat{PV}$ 替换为预测值），得到计划购电量 $P^0_t$
@@ -919,7 +928,7 @@ $C_t,D_t\in[0,\bar C]$、$E_t\in[\underline E,\overline E]$ 与“不同时充�
 \label{fig:q2exec}
 \end{figure}
 
-\subsection{全年结果}
+\subsection{求解结果}
 
 \begin{table}[htbp]
 \centering
@@ -982,7 +991,7 @@ $C_t,D_t\in[0,\bar C]$、$E_t\in[\underline E,\overline E]$ 与“不同时充�
 \label{fig:q2balance}
 \end{figure}
 
-\subsection{指定日期结果（表 1、表 2、表 3 格式）}
+\subsection{结果分析}
 
 \begin{table}[htbp]
 \centering
