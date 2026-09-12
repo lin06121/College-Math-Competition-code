@@ -729,23 +729,14 @@ N_d(t)=L_d(t)-PV_d(t)
 先分类再取均值，使两类日子不必相互牵就。作为对照，不分类的三种依据误差均明显更大
 （\cref{tab:fcacc}）：同星期几平均绝对误差 MAE 为 188.88\,kW、昨日外推 650.02\,kW、附件1 典型日 790.30\,kW。
 
-\textbf{（2）光伏预测：最近 4 个连续日均值}。光伏出力受天气支配，
-其日间持续性远强于周内周期性，故取\textbf{最近 4 个连续日}的逐时段实测均值：
-\begin{equation}
-\widehat{PV}_d(t)=\frac{1}{4}\sum_{\tau=d-4}^{d-1}\max\big(PV_\tau(t),\,0\big).
-\label{eq:basisPV}
-\end{equation}
-
-
 \begin{table}[htbp]
 \centering
-\caption{问题二 0:00 计划可用的预测依据精度对照（2.1--12.31 外样本；MAE 为平均绝对误差、
-RMSE 为均方根误差，单位 kW；MAPE 为日总量的平均绝对百分比误差）}
+\caption{问题二 0:00 计划可用的预测依据精度对照}
 \label{tab:fcacc}
 \zihao{-5}
 \begin{tabular}{@{}llccc@{}}
 \toprule
-对象 & 预测依据 & MAE & RMSE & 日总量 MAPE \\
+对象 & 预测依据 & MAE(平均绝对误差) & RMSE(均方根误差) & MAPE(日总量) \\
 \midrule
 \multirow{4}{*}{负载}
 & \textbf{最近 4 个同类日均值（采用）} & \textbf{137.52} & \textbf{191.59} & \textbf{1.16\%} \\
@@ -755,6 +746,45 @@ RMSE 为均方根误差，单位 kW；MAPE 为日总量的平均绝对百分比�
 \bottomrule
 \end{tabular}
 \end{table}
+
+\textbf{（2）光伏预测：最近 4 个连续日均值}。由第 3 节的季节规律，光伏发电量几乎不随星期变化，
+而由季节与天气共同决定。取\textbf{最近 4 个连续日}的逐时段实测均值：
+\begin{equation}
+\widehat{PV}_d(t)=\frac{1}{4}\sum_{\tau=d-4}^{d-1}\max\big(PV_\tau(t),\,0\big).
+\label{eq:basisPV}
+\end{equation}
+
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{fig_q2_pv_season.png}
+\caption{(a)日光伏发电量与季节曲线对比；(b)光伏 MAE 随季节曲线权重 $w$ 的变化}
+\label{fig:q2pvseason}
+\end{figure}
+
+为检验季节电平是否需要单独建模，构造如下对照。设 $S_d(t)$ 为逐时段谐波季节曲线，
+其系数由 $d$ 之前的历史样本按最小二乘拟合（每 14 天重拟合一次，保证因果）：
+\begin{equation}
+S_d(t)=\alpha_0(t)+\sum_{k=1}^{2}\Big[\alpha_k(t)\sin\frac{2\pi k\,\mathrm{doy}_d}{365.25}
++\beta_k(t)\cos\frac{2\pi k\,\mathrm{doy}_d}{365.25}\Big],
+\label{eq:pvseason}
+\end{equation}
+其中 $\mathrm{doy}_d$ 为目标日的年内序号。再把 $S_d(t)$ 以权重 $w$ 混入式 \eqref{eq:basisPV}：
+\begin{equation}
+\widehat{PV}^{\,w}_d(t)=w\,S_d(t)+(1-w)\,\widehat{PV}_d(t),\qquad 0\le w\le 1 .
+\label{eq:pvblend}
+\end{equation}
+在 2 月 1 日至 12 月 31 日上计算，光伏 MAE 随 $w$ 单调上升：$w=0$（即式 \eqref{eq:basisPV}）
+为 151.95\,kW，
+$w=0.5$ 为 176.30\,kW，$w=1$（纯季节曲线）为 240.85\,kW；
+问题二全年费用相应在 $w\ge0.2$ 后上升 $0.04\%\sim4.9\%$。
+式 \eqref{eq:pvseason} 的系数由全年历史拟合，只刻画季节电平、不含近期天气；
+\cref{fig:q2pvseason}(a) 亦显示，近 4 日均值与实际日光伏电量的相关系数为 0.965，
+季节曲线为 0.844，且后者在 3--4 月系统性高估、7 月明显低估。这是因为当取最近 4 个连续日，这 4 天已经处在当前季节，季节电平已经被带入；
+再显式加季节因子，等于把权重拉向更早、天气状况不同的日子。
+
+
+
 
 \textbf{（3）报童安全裕度}。计划购电量由 0:00 一次性下达，而实际净需求会因预测误差偏离预测值：
 计划偏低时缺口须以 5 倍电价紧急购电，计划偏高时多购电量仍按基准价支付却无法使用。故计划值应在预测值上
