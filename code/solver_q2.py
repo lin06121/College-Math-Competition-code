@@ -24,6 +24,7 @@ from config import (
     DATA_PROCESSED, SLOTS_PER_DAY, HOURS_PER_SLOT, STORAGE_INITIAL_SOC, KEY_DATES,
 )
 from forecast_q2 import load_historical_matrices
+from forecast_q4 import load_price_realtime, build_price_forecast
 from daily_solver import build_and_solve
 from stochastic_q2 import build_scenarios, solve_stochastic_day, solve_recourse_day
 from method_q2 import (
@@ -38,21 +39,30 @@ from method_q2 import (
 
 def simulate_year(price, dates, load_mat, pv_mat, net_mat, err, cls_arr, d2i,
                   start_date, end_date, e0,
-                  q=None, method="nv", settle="causal", m_scenarios=10):
+                  q=None, method="nv", settle="causal", m_scenarios=10,
+                  price_settle=None, term_value=0.0):
     """
     从 start_date 到 end_date 逐日滚动，返回 (result_df, summary_df)。
 
     q        : 报童分位（method="nv" 时使用）
     method   : 'nv'（报童裕度）| 'saa'（两阶段随机规划）| 'point'（无裕度）
     settle   : 'causal'（可实行）| 'recour'（不可实行下界）
+    price    : 计划用的电价。(144,) 或 (天数,144)。问题 4 未知电价时传**电价预报**。
+    price_settle : 结算用的实际电价（小时段逐日）。None 时用 price。
+    term_value : 终端储电量价值 λ（元/kWh），传给 build_and_solve。
     """
     tds = pd.date_range(pd.Timestamp(start_date), pd.Timestamp(end_date), freq="D")
     records, daily = [], []
+    price2 = np.asarray(price)
+    settle2 = None if price_settle is None else np.asarray(price_settle)
 
     for td in tds:
         i = d2i[td]
         load_a, pv_a = load_mat[i], pv_mat[i]
         net_a = net_mat[i]
+        # 计划价与结算价分离（问题 4：计划用预报、结算用实际）
+        pp = price2[i] if price2.ndim == 2 else price2
+        sp = (settle2[i] if settle2.ndim == 2 else settle2) if settle2 is not None else pp
 
         # ---- 日前预测与计划 ----
         load_f, pv_f = forecast_mate(i, dates, load_mat, pv_mat, cls_arr)
@@ -62,23 +72,25 @@ def simulate_year(price, dates, load_mat, pv_mat, net_mat, err, cls_arr, d2i,
             try:
                 idx, probs = build_scenarios(i, err, dates, m=m_scenarios)
                 P_plan, _, _ = solve_stochastic_day(
-                    price, net_f, err[idx], probs, e0=e0, verbose=False)
+                    pp, net_f, err[idx], probs, e0=e0, verbose=False)
             except ValueError:
                 # 预热期历史误差不足，退化为点预测
-                sol = build_and_solve(price, load_f, pv_f, e0=e0,
-                                      cyclic=False, allow_emergency=False, verbose=False)
+                sol = build_and_solve(pp, load_f, pv_f, e0=e0,
+                                      cyclic=False, allow_emergency=False,
+                                      term_value=term_value, verbose=False)
                 P_plan = sol["P_plan_kW"]
         else:
             b = quantile_margin(err, i, q) if method == "nv" else np.zeros(SLOTS_PER_DAY)
-            sol = build_and_solve(price, load_f + b, pv_f, e0=e0,
-                                  cyclic=False, allow_emergency=False, verbose=False)
+            sol = build_and_solve(pp, load_f + b, pv_f, e0=e0,
+                                  cyclic=False, allow_emergency=False,
+                                  term_value=term_value, verbose=False)
             P_plan = sol["P_plan_kW"]
 
         # ---- 实时结算 ----
         if settle == "causal":
             P_ch, P_dis, P_em, E, P_curt = causal_dispatch(net_a, P_plan, e0)
         else:
-            s0 = solve_recourse_day(price, net_a, P_plan, e0=e0, verbose=False)
+            s0 = solve_recourse_day(sp, net_a, P_plan, e0=e0, verbose=False)
             P_ch, P_dis, P_em, E, P_curt = (s0["P_ch_kW"], s0["P_dis_kW"],
                                             s0["P_em_kW"], s0["E_kWh"], s0["P_curt_kW"])
 
@@ -90,11 +102,11 @@ def simulate_year(price, dates, load_mat, pv_mat, net_mat, err, cls_arr, d2i,
                 "E_kWh": E[t], "P_curt_kW": P_curt[t],
                 "load_forecast_kW": load_f[t], "pv_forecast_kW": pv_f[t],
                 "load_actual_kW": load_a[t], "pv_actual_kW": pv_a[t],
-                "price": price[t],
+                "price": sp[t],
             })
 
-        plan_cost = float((P_plan * price).sum() * HOURS_PER_SLOT)
-        em_cost = float((P_em * price).sum() * HOURS_PER_SLOT * 5.0)
+        plan_cost = float((P_plan * sp).sum() * HOURS_PER_SLOT)
+        em_cost = float((P_em * sp).sum() * HOURS_PER_SLOT * 5.0)
         daily.append({
             "date": td, "e0": e0, "e_end": E[-1],
             "plan_cost": plan_cost, "em_cost": em_cost,
@@ -115,13 +127,15 @@ def simulate_year(price, dates, load_mat, pv_mat, net_mat, err, cls_arr, d2i,
 def calibrate_q(dates, load_mat, pv_mat, net_mat, err, cls_arr, d2i, price,
                 cal_start="2025-01-08", cal_end="2025-01-31",
                 q_grid=(0.5, 0.6, 0.7, 0.8, 0.9), e0=STORAGE_INITIAL_SOC,
-                method="nv", settle="causal", verbose=True):
+                method="nv", settle="causal", verbose=True,
+                price_settle=None, term_value=0.0):
     """在标定窗口上网格搜索使全年（窗口内）总费用最低的报童分位 q。"""
     best_q, best_cost, table = None, np.inf, []
     for q in q_grid:
         _, s = simulate_year(price, dates, load_mat, pv_mat, net_mat, err,
                              cls_arr, d2i, cal_start, cal_end, e0,
-                             q=q, method=method, settle=settle)
+                             q=q, method=method, settle=settle,
+                             price_settle=price_settle, term_value=term_value)
         cost = s["total_cost"].sum()
         table.append((q, s["plan_cost"].sum(), s["em_cost"].sum(), cost))
         if verbose:
@@ -185,6 +199,71 @@ def solve_problem2(start_date="2025-02-01", end_date="2025-12-31",
         result_df.to_csv(save_dir / "result2_details.csv", index=False)
         summary_df.to_csv(save_dir / "result2_summary.csv", index=False)
 
+    return result_df, summary_df
+
+
+def solve_problem4_2(start_date="2025-02-01", end_date="2025-12-31",
+                     price_plan="forecast", forecast_window=14,
+                     q=None, lambda_=0.0,
+                     warm_start="2025-01-01", verbose=True,
+                     save_dir: Path = DATA_PROCESSED):
+    """
+    问题 4 子问：波动电价下重算问题 2（ahead 0:00 不知当日电价）。
+
+    price_plan : 'forecast'（电价预报，问题 4 主方案）
+                 'actual'  （当日电价已知，对照）| 'typical'（附件 1 典型日，退化基线）
+    结算一律用附件 4 实际电价。q、lambda_ 缺省时在 1 月标定。
+    """
+    dates, load_mat, pv_mat, price_mat = load_historical_matrices()
+    net_mat = load_mat - pv_mat
+    cls_arr = make_class_array(dates)
+    d2i = {pd.Timestamp(d): i for i, d in enumerate(dates)}
+    err = compute_residuals_mate(dates, load_mat, pv_mat, net_mat, cls_arr)
+    p_actual = load_price_realtime()
+    typ = price_mat[d2i[pd.Timestamp(warm_start)]]
+
+    if price_plan == "forecast":
+        p_plan_full = build_price_forecast(p_actual, typ, window=forecast_window)
+    elif price_plan == "actual":
+        p_plan_full = p_actual
+    elif price_plan == "typical":
+        p_plan_full = np.tile(typ, (len(dates), 1))
+    else:
+        raise ValueError(f"未知 price_plan: {price_plan}")
+
+    if q is None:
+        if verbose:
+            print(f"在 2025-01-08 ~ 01-31 上标定报童分位 q"
+                  f"（计划价={price_plan}，结算价=实际）：")
+        q, _ = calibrate_q(dates, load_mat, pv_mat, net_mat, err, cls_arr, d2i,
+                           p_plan_full, price_settle=p_actual, term_value=lambda_,
+                           verbose=verbose)
+        if verbose:
+            print(f"  -> 标定结果 q* = {q}")
+
+    result_df, summary_df = simulate_year(
+        p_plan_full, dates, load_mat, pv_mat, net_mat, err, cls_arr, d2i,
+        warm_start, end_date, STORAGE_INITIAL_SOC, q=q,
+        price_settle=p_actual, term_value=lambda_)
+
+    keep = pd.Timestamp(start_date)
+    result_df = result_df[result_df["date"] >= keep].reset_index(drop=True)
+    summary_df = summary_df[summary_df["date"] >= keep].reset_index(drop=True)
+
+    if verbose:
+        print(f"\n输出窗口 {start_date} ~ {end_date}（{len(summary_df)} 天）")
+        print(f"  计划购电费 {summary_df['plan_cost'].sum():,.2f} 元")
+        print(f"  紧急购电费 {summary_df['em_cost'].sum():,.2f} 元")
+        print(f"  总费用     {summary_df['total_cost'].sum():,.2f} 元")
+        print(f"  紧急购电量 {summary_df['em_kWh'].sum():,.2f} kWh")
+
+    if save_dir is not None:
+        save_dir = Path(save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
+        result_df.to_csv(save_dir / "result42_details.csv", index=False)
+        summary_df.to_csv(save_dir / "result42_summary.csv", index=False)
+
+    summary_df.attrs["q"] = q
     return result_df, summary_df
 
 

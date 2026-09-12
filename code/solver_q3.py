@@ -43,6 +43,7 @@ from config import (
 )
 from forecast_q2 import load_historical_matrices
 from forecast_q3 import build_forecast_matrix, debias_forecast_matrix
+from forecast_q4 import load_price_realtime, build_price_forecast
 from method_q2 import (
     make_class_array, forecast_mate, quantile_margin,
     compute_residuals_mate, causal_dispatch,
@@ -322,10 +323,16 @@ def simulate_year_q3(dates, load_mat, pv_mat, price_mat, fc, cls_arr, err,
                      d2i, f2i, start_date, end_date, e0,
                      q=0.8, issue_times=ISSUE_TIMES, verbose=False,
                      term_value=0.0, over_coef=1.5, under_coef=-0.5,
-                     debias=False, debias_window=20):
-    """从 start_date 到 end_date 逐日滚动，返回 (result_df, summary_df)。"""
+                     debias=False, debias_window=20,
+                     price_settle_mat=None):
+    """从 start_date 到 end_date 逐日滚动，返回 (result_df, summary_df)。
+
+    price_mat : 计划用价格矩阵 (N,144)。问题 4 未知电价时传**电价预报**矩阵。
+    price_settle_mat : 结算用实际价格矩阵 (N,144)。None 时用 price_mat。
+    """
     tds = pd.date_range(pd.Timestamp(start_date), pd.Timestamp(end_date), freq="D")
     records, daily = [], []
+    s_mat = (None if price_settle_mat is None else np.asarray(price_settle_mat))
 
     pv_all = (debias_forecast_matrix(fc, pv_mat, dates, d2i, debias_window)
               if debias else fc["pv_forecast"])
@@ -334,7 +341,8 @@ def simulate_year_q3(dates, load_mat, pv_mat, price_mat, fc, cls_arr, err,
         i = d2i[td]
         fi = f2i[td]
         load_a, pv_a = load_mat[i], pv_mat[i]
-        price = price_mat[i]
+        price = price_mat[i]                        # 计划用（预报）价
+        sp = s_mat[i] if s_mat is not None else price   # 结算用（实际）价
 
         load_f, _ = forecast_mate(i, dates, load_mat, pv_mat, cls_arr)
         margin = quantile_margin(err, i, q) if q is not None else np.zeros(SLOTS_PER_DAY)
@@ -346,7 +354,7 @@ def simulate_year_q3(dates, load_mat, pv_mat, price_mat, fc, cls_arr, err,
         sol = solve_day_q3(price, load_a, pv_a, pv_fc, load_for_plan, e0,
                            issue_times=issue_times, term_value=term_value,
                            over_coef=over_coef, under_coef=under_coef)
-        costs = compute_costs(price, sol["P_plan_kW"], sol["P_adj_kW"], sol["P_em_kW"])
+        costs = compute_costs(sp, sol["P_plan_kW"], sol["P_adj_kW"], sol["P_em_kW"])
         costs["curt_kWh"] = float(sol["P_curt_kW"].sum() * HOURS_PER_SLOT)
 
         for t in range(SLOTS_PER_DAY):
@@ -363,7 +371,7 @@ def simulate_year_q3(dates, load_mat, pv_mat, price_mat, fc, cls_arr, err,
                 "pv_forecast_kW": sol["pv_forecast_kW"][t],
                 "load_actual_kW": load_a[t],
                 "pv_actual_kW": pv_a[t],
-                "price": price[t],
+                "price": sp[t],
             })
 
         daily.append({"date": td, "e0": e0, "e_end": sol["E_kWh"][-1], **costs})
@@ -412,41 +420,54 @@ def summarize(summary_df, tag=""):
 def calibrate_q_q3(data, cal_start="2025-01-08", cal_end="2025-01-31",
                    warm_start="2025-01-01",
                    q_grid=(0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.9),
-                   term_value=0.0, issue_times=ISSUE_TIMES, verbose=True,
-                   debias=False, debias_window=20):
-    """在标定窗口上网格搜索使总费用最低的报童分位 q。"""
+                   lam_grid=(0.0, 0.3, 0.4, 0.45, 0.5),
+                   issue_times=ISSUE_TIMES, verbose=True,
+                   debias=False, debias_window=20,
+                   price_settle_mat=None):
+    """
+    在标定窗口上**联合**网格搜索 (报童分位 q, 终端储能价值 λ)。
+
+    λ 是日终储电量 E(144) 的影子价格（元/kWh）：给目标加 −λ·E(144)。
+    λ 过小时储能机会成本被忽略、日终被放空；过大则退化为"日终充满"的病态解，
+    故必须标定（本模型阈值 ≈0.425，平台 [0.43, 0.46]）。
+
+    返回 (best_q, best_lam, 明细 DataFrame)。
+    """
     dates, load_mat, pv_mat, price_mat, fc, cls_arr, err, d2i, f2i, net_mat = data
-    best_q, best_cost, table = None, np.inf, []
-    for q in q_grid:
-        _, s = simulate_year_q3(
-            dates, load_mat, pv_mat, price_mat, fc, cls_arr, err, d2i, f2i,
-            warm_start, cal_end, STORAGE_INITIAL_SOC, q=q,
-            issue_times=issue_times, term_value=term_value,
-            debias=debias, debias_window=debias_window)
-        s = _trim(s, cal_start)
-        cost = s["total_cost"].sum()
-        table.append((q, s["adj_purchase_cost"].sum(), s["adj_cost"].sum(),
-                      s["em_cost"].sum(), cost))
-        if verbose:
-            print(f"    q={q:<5} 购电 {s['adj_purchase_cost'].sum():>10,.0f}  "
-                  f"调整 {s['adj_cost'].sum():>9,.0f}  紧急 {s['em_cost'].sum():>9,.0f}  "
-                  f"总 {cost:>11,.0f} 元")
-        if cost < best_cost:
-            best_q, best_cost = q, cost
-    col = ["q", "adj_purchase_cost", "adj_cost", "em_cost", "total_cost"]
-    return best_q, pd.DataFrame(table, columns=col)
+    best_q = best_lam = None
+    best_cost, table = np.inf, []
+    for lam in lam_grid:
+        for q in q_grid:
+            _, s = simulate_year_q3(
+                dates, load_mat, pv_mat, price_mat, fc, cls_arr, err, d2i, f2i,
+                warm_start, cal_end, STORAGE_INITIAL_SOC, q=q,
+                issue_times=issue_times, term_value=lam,
+                debias=debias, debias_window=debias_window,
+                price_settle_mat=price_settle_mat)
+            s = _trim(s, cal_start)
+            cost = s["total_cost"].sum()
+            table.append((lam, q, s["adj_purchase_cost"].sum(), s["adj_cost"].sum(),
+                          s["em_cost"].sum(), cost))
+            if verbose:
+                print(f"    λ={lam:<5} q={q:<5} 购电 {s['adj_purchase_cost'].sum():>10,.0f}  "
+                      f"调整 {s['adj_cost'].sum():>8,.0f}  紧急 {s['em_cost'].sum():>8,.0f}  "
+                      f"总 {cost:>11,.0f} 元")
+            if cost < best_cost:
+                best_q, best_lam, best_cost = q, lam, cost
+    col = ["lam", "q", "adj_purchase_cost", "adj_cost", "em_cost", "total_cost"]
+    return best_q, best_lam, pd.DataFrame(table, columns=col)
 
 
 def solve_problem3(start_date="2025-02-01", end_date="2025-12-31",
                    q=None, warm_start="2025-01-01",
                    issue_times=ISSUE_TIMES, verbose=True,
-                   save_dir=DATA_PROCESSED, term_value=0.0, data=None,
+                   save_dir=DATA_PROCESSED, term_value=None, data=None,
                    debias=False, debias_window=20):
     """
     求解问题 3。
 
-    q=None 时先在 1 月标定报童分位，再以标定值跑全年（2025-01-01 预热），
-    输出 start_date ~ end_date 的结果。term_value 为终端储电量价值 λ（元/kWh）。
+    q=None 或 term_value=None 时先在 1 月**联合标定** (报童分位 q, 终端储能价值 λ)，
+    再以标定值跑全年（2025-01-01 预热），输出 start_date ~ end_date 的结果。
     debias=False（默认）直接使用附件 3 预报；置 True 可启用因果去偏
     （见 forecast_q3.debias_forecast_matrix），全年约再省 0.46%，但多一层后处理。
     """
@@ -454,13 +475,17 @@ def solve_problem3(start_date="2025-02-01", end_date="2025-12-31",
         data = load_problem3_data()
     dates, load_mat, pv_mat, price_mat, fc, cls_arr, err, d2i, f2i, net_mat = data
 
-    if q is None:
+    if q is None or term_value is None:
         if verbose:
-            print(f"在 2025-01-08 ~ 01-31 上标定报童分位 q（λ={term_value}）：")
-        q, _ = calibrate_q_q3(data, verbose=verbose, term_value=term_value,
-                              debias=debias, debias_window=debias_window)
+            print("在 2025-01-08 ~ 01-31 上联合标定 (q, λ)：")
+        q_c, lam_c, _ = calibrate_q_q3(data, verbose=verbose,
+                                       debias=debias, debias_window=debias_window)
+        if q is None:
+            q = q_c
+        if term_value is None:
+            term_value = lam_c
         if verbose:
-            print(f"  -> 标定结果 q* = {q}")
+            print(f"  -> 标定结果 q* = {q}，λ* = {term_value}")
 
     result_df, summary_df = simulate_year_q3(
         dates, load_mat, pv_mat, price_mat, fc, cls_arr, err, d2i, f2i,
@@ -480,6 +505,70 @@ def solve_problem3(start_date="2025-02-01", end_date="2025-12-31",
         result_df.to_csv(save_dir / "result3_details.csv", index=False)
         summary_df.to_csv(save_dir / "result3_summary.csv", index=False)
 
+    return result_df, summary_df
+
+
+def solve_problem4_3(start_date="2025-02-01", end_date="2025-12-31",
+                     price_plan="forecast", forecast_window=14,
+                     q=None, term_value=None, warm_start="2025-01-01",
+                     issue_times=ISSUE_TIMES, verbose=True,
+                     save_dir=DATA_PROCESSED, data=None, debias=False):
+    """
+    问题 4 子问：波动电价下重算问题 3（0:00 不知当日电价）。
+
+    日前计划与各次调整都按**电价预报** price_plan 优化（预报=近 W 日逐时段均值），
+    结算一律按附件 4 **实际电价**。q、λ 缺省时在 1 月联合标定。
+    """
+    if data is None:
+        data = load_problem3_data()
+    dates, load_mat, pv_mat, price_mat, fc, cls_arr, err, d2i, f2i, net_mat = data
+    p_actual = load_price_realtime()
+
+    if price_plan == "forecast":
+        p_plan_mat = build_price_forecast(p_actual, price_mat, window=forecast_window)
+    elif price_plan == "actual":
+        p_plan_mat = p_actual
+    elif price_plan == "typical":
+        p_plan_mat = np.tile(price_mat, (len(dates), 1))
+    else:
+        raise ValueError(f"未知 price_plan: {price_plan}")
+
+    data4 = (dates, load_mat, pv_mat, p_plan_mat, fc, cls_arr, err,
+             d2i, f2i, net_mat)
+
+    if q is None or term_value is None:
+        if verbose:
+            print(f"在 2025-01-08 ~ 01-31 上联合标定 (q, λ)"
+                  f"（计划价={price_plan}，结算价=实际）：")
+        q_c, lam_c, _ = calibrate_q_q3(data4, verbose=verbose, debias=debias,
+                                       price_settle_mat=p_actual)
+        if q is None:
+            q = q_c
+        if term_value is None:
+            term_value = lam_c
+        if verbose:
+            print(f"  -> 标定结果 q*={q}，λ*={term_value}")
+
+    result_df, summary_df = simulate_year_q3(
+        *data4[:9], warm_start, end_date, STORAGE_INITIAL_SOC, q=q,
+        issue_times=issue_times, term_value=term_value, debias=debias,
+        price_settle_mat=p_actual)
+
+    result_df = result_df[result_df["date"] >= pd.Timestamp(start_date)].reset_index(drop=True)
+    summary_df = summary_df[summary_df["date"] >= pd.Timestamp(start_date)].reset_index(drop=True)
+
+    if verbose:
+        print(f"\n输出窗口 {start_date} ~ {end_date}，q={q}，λ={term_value}")
+        summarize(summary_df)
+
+    if save_dir is not None:
+        save_dir = Path(save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
+        result_df.to_csv(save_dir / "result43_details.csv", index=False)
+        summary_df.to_csv(save_dir / "result43_summary.csv", index=False)
+
+    summary_df.attrs["q"] = q
+    summary_df.attrs["lambda"] = term_value
     return result_df, summary_df
 
 

@@ -217,15 +217,23 @@ def format_all(result_df, summary_df, out_dir: Path = None):
     t2 = make_paper_table2_q3(result_df, summary_df)
     t3 = make_paper_table3_q3(result_df, summary_df)
     events = make_emergency_events(result_df)
-    xlsx = write_result3_xlsx(result_df, summary_df, out_path=out_dir / "result3.xlsx")
 
+    # 先写 CSV：即使 result3.xlsx 正被 Excel 打开，论文表也不会丢
     t1.to_csv(out_dir / "table1_q3.csv", index=False, encoding="utf-8-sig")
     t2.to_csv(out_dir / "table2_q3.csv", index=False, encoding="utf-8-sig")
     t3.to_csv(out_dir / "table3_q3.csv", index=False, encoding="utf-8-sig")
     events.to_csv(out_dir / "emergency_events_q3.csv", index=False,
                   encoding="utf-8-sig")
+
+    xlsx, err = out_dir / "result3.xlsx", None
+    try:
+        write_result3_xlsx(result_df, summary_df, out_path=xlsx)
+    except PermissionError:
+        err = "result3.xlsx 正被 Excel 打开，请关闭后重新导出"
+        print(f"[警告] {err}")
+
     return {"table1": t1, "table2": t2, "table3": t3,
-            "events": events, "result_xlsx": xlsx}
+            "events": events, "result_xlsx": xlsx, "xlsx_error": err}
 
 
 def print_paper_tables(result_df, summary_df):

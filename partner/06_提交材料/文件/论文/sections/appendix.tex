@@ -1,0 +1,222 @@
+\section{程序与数据清单}
+
+\subsection{程序结构}
+
+全部计算由 40 余个 \textbf{Python} 脚本完成，可从原始附件一键复现论文与结果文件中的每一个数字。
+提交材料按“\textbf{代码}”与“\textbf{文件}”两部分组织：
+\texttt{06\_提交材料/代码/Python/} 为本文全部脚本（含 \texttt{预测模型/}、\texttt{数据工程/}
+与 \texttt{早期口径存档/}），\texttt{06\_提交材料/文件/} 为论文工程、5 个结果文件与预测模型实验报告/图表。
+求解器为 \texttt{scipy.optimize.linprog}（HiGHS，对偶单纯形/内点法均可）；
+预测模型用到 \texttt{scikit-learn}（岭回归/堆叠）与 \texttt{LightGBM}（梯度提升）。
+只需设置 \texttt{PYTHONPATH} 指向数据工程与脚本目录，按下列顺序执行即可完整复现：
+
+\begin{lstlisting}[language=bash, caption={一键复现流程（Windows PowerShell）}]
+$env:PYTHONPATH="<工作目录>;<工作目录>\00_环境"
+python 03_数据工程/scripts/build_dataset.py      # 附件1-4 -> 统一时间轴数据集
+python 04_建模求解/scripts/fc_upgraded.py        # 升级预测模型(负荷/光伏/电价)
+python 04_建模求解/scripts/rebuild_A_final.py    # 求解四问, 写出 result1/2/3/4-2/4-3.xlsx
+python 04_建模求解/scripts/A_all_numbers.py      # 论文全部数字 -> data/A_all_numbers.json
+python 04_建模求解/scripts/extract_tables.py     # 论文表1/2/3 -> paper_tables.json
+python 04_建模求解/scripts/make_figs_final.py    # 论文插图
+python 04_建模求解/scripts/audit_results.py      # 独立审计: 重读结果文件逐项复算
+\end{lstlisting}
+
+各脚本功能如下：
+
+\begin{table}[htbp]
+\centering
+\caption{程序清单与功能}
+\label{tab:code}
+\scriptsize
+\begin{tabularx}{\textwidth}{@{}p{4.6cm}X@{}}
+\toprule
+脚本 & 功能 \\
+\midrule
+\texttt{engine.py} & 通用单日 LP 引擎：计划模式与调整模式、SOC 递推、功率平衡（允许弃光） \\
+\texttt{io\_results.py} & 结果写入：按附件5 模板逐单元格填充 result1/2/3/4-2/4-3.xlsx \\
+\texttt{fc\_upgraded.py} & \textbf{升级预测模型}：负荷“水平$\times$形状 + 分类凸组合”、光伏/电价因果岭回归堆叠 \\
+\texttt{fc\_features.py} / \texttt{fc\_ml.py} & 预测特征工程（时段/日历/滞后/滚动/附件3 预报）与 LightGBM 因果滚动重训 \\
+\texttt{A\_core.py} & \textbf{口径 A 核心}：0:00 计划 $+$ 报童裕度 $+$ 平衡响应规则 $+$ 调整时刻裕度重建 $+$ 天眼下界/无储能对照 \\
+\texttt{rebuild\_A\_final.py} & \textbf{正式重算}：构造升级预测并写出 5 个结果文件（result1--4-3） \\
+\texttt{A\_all\_numbers.py} & 论文全部数字：精度、四问主结果、调整方案对照、执行机制、灵敏度、预言机分解 \\
+\texttt{causal\_core.py} / \texttt{rebuild\_causal.py} & 因果口径核心与“原依据”版本的对照重算（用于口径对比） \\
+\texttt{q1.py} & 问题一求解、贪心与无储能对照、结果文件与图 \\
+\texttt{causal\_basis\_all.py} / \texttt{causal\_variants.py} & 方法对照（计划依据、分位、结算方式、滚动方案） \\
+\texttt{causal\_saa.py} / \texttt{plan\_saa.py} / \texttt{q2\_lstp\_final.py} & 两阶段随机规划（SAA/LP 情景规划）在因果口径下的失效验证 \\
+\texttt{noise\_decompose.py} & 残差季节偏置、重尾分布、预言机信息价值分解 \\
+\texttt{sensitivity\_causal.py} / \texttt{eta\_sens.py} / \texttt{buffer\_forms\_causal.py} & 灵敏度与裕度形式对照实验 \\
+\texttt{audit\_results.py} & \textbf{独立审计}：直接重读 5 个结果文件，复算平衡/SOC/限幅/费用 \\
+\texttt{solver\_robustness\_final.py} & 求解器稳健性：同一条管道分别用 HiGHS 对偶单纯形与内点法求解 \\
+\texttt{check\_paper\_tables.py} & 论文表格数值与结果文件的一致性校验 \\
+\texttt{extract\_tables.py} / \texttt{show\_paper\_tables.py} & 论文表 1/2/3 数据提取（与结果文件同源） \\
+\texttt{make\_figs\_final.py} / \texttt{make\_figs\_causal.py} / \texttt{make\_pattern\_figs.py} & 论文插图与规律证据图 \\
+\texttt{07\_预测模型实验/scripts/*} & 预测模型的完整实验（精度对照、端到端费用、多样化图表） \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{核心代码（LP 引擎、报童缓冲与实时平衡控制）}
+
+\begin{lstlisting}[language=Python, caption={单日 LP 引擎（节选：计划模式与调整模式的目标、约束装配）}]
+def solve_day(price, load, pv, soc0, soc_end=None, v=0.0, base_P=None, t0=0, method='highs'):
+    """price/load/pv: 长度 h 的数组(元/kWh, kWh/时段, kWh/时段); base_P: 调整模式下已锁定的计划量"""
+    h = len(price); adj = base_P is not None
+    nP, nC, nD, nE = h, h, h, h + 1
+    nS, nX = (h, h) if adj else (0, 0)
+    n = nP + nC + nD + nE + nS + nX
+    iP, iC, iD, iE, iS, iX = 0, h, 2*h, 3*h, 4*h, 4*h+h
+    c = np.zeros(n)
+    if not adj:
+        c[iP:iP+h] = price                 # 计划模式: min sum p*P - v*E_end
+    else:
+        c[iS:iS+h] = -0.5*price            # 调整模式: 下调退回 50%
+        c[iX:iX+h] = +1.5*price            #           上调按 1.5 倍
+    c[iE+h] = -v
+    Aub, bub = [], []
+    for t in range(h):                     # 功率平衡(允许弃光): PV+P+D-C >= L
+        row = np.zeros(n); row[iP+t], row[iC+t], row[iD+t] = -1, 1, -1
+        Aub.append(row); bub.append(pv[t]-load[t])
+    Aeq, beq = [], []
+    for t in range(h):                     # SOC 递推: E[t+1]=E[t]+0.9C-D/0.9
+        row = np.zeros(n); row[iE+t], row[iE+t+1] = -1, 1
+        row[iC+t], row[iD+t] = -0.9, 1/0.9
+        Aeq.append(row); beq.append(0.0)
+    if adj:
+        for t in range(h):                 # P + S - X = 计划量
+            row = np.zeros(n); row[iP+t], row[iS+t], row[iX+t] = 1, 1, -1
+            Aeq.append(row); beq.append(base_P[t])
+    # 边界: 1200<=E<=10800, 0<=C,D<=833.33, P>=0, E[0]=soc0
+    ...
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={升级预测模型（负载：水平$\times$形状 + 分类凸组合；光伏/电价：因果岭回归堆叠），式 \eqref{eq:basisL}--\eqref{eq:basisPV}}]
+# ---------- (1) 负载: 水平×形状分解 + 周五六/其他分类凸组合 ----------
+SH = np.zeros((n, 144)); lv = np.zeros(n)
+for j in range(n):
+    hist = [q for q in range(j) if low[q] == low[j]]          # 同类日(周五六/其他)
+    A = L_act[hist[-6:]]
+    SH[j] = (A / np.maximum(A.sum(axis=1, keepdims=True), 1e-6)).mean(axis=0)   # 形状
+    lv[j] = L_act[hist[-4:]].sum(axis=1).mean()                                 # 水平
+M_shape = SH * lv[:, None]
+M_lvl = level_smooth(Lb, L_act, alpha=0.35)      # 递推水平平滑(昨日实际/预测比指数平滑)
+M_ef  = err_feedback(Lb, L_act, k=3, damp=0.35)  # 全局误差反馈
+CAND = [Lb, M_shape, M_lvl, M_ef]
+for cls in (False, True):                        # 1 月标定: 两类各自在凸组合网格上选权重
+    rows = [j for j in range(7, 31) if low[j] == cls]
+    w_best = min(SIMPLEX_GRID, key=lambda w: np.abs(sum(wi*C[k] for wi, k in zip(w, range(4)))[rows]
+                                                    - L_act[rows]).mean())
+    L_hat[low == cls] = sum(wi*C[k] for wi, k in zip(w_best, range(4)))[low == cls]
+# 结果: 周五六 0.3×水平×形状 + 0.7×递推水平; 其他五天 1.0×水平×形状
+
+# ---------- (2) 光伏/电价: 因果岭回归堆叠(每 14 天用 j<d0 的样本重训) ----------
+def causal_ridge_stack(cands, Y, alpha=1.0, retrain=14):
+    X = np.stack([np.stack(cands, -1), t_feat, low_feat, t_feat*low_feat], -1)  # 候选+时段+类别交互
+    out = np.zeros_like(Y)
+    for d0 in range(0, n, retrain):
+        tr = np.arange(0, d0); mdl = Ridge(alpha=alpha).fit(X[tr].reshape(-1, F), Y[tr].reshape(-1))
+        out[d0:d0+retrain] = mdl.predict(X[d0:d0+retrain].reshape(-1, F)).reshape(-1, 144)
+    return out
+PV_hat = causal_ridge_stack([Pb, err_feedback(Pb, PV_act, 2, 0.5), lgbm_pv, fc0], PV_act)  # MAE 136.8 kW
+P_hat  = causal_ridge_stack([prof, err_feedback(prof, RTP, 2, 0.5), lgbm_price], RTP)      # MAE 0.0367 元/kWh
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={报童安全裕度与实时平衡控制结算（问题二核心，式 \eqref{eq:buffer}、\eqref{eq:clip}--\eqref{eq:socrec}）}]
+# 1) 报童安全裕度: 近30天净残差的 q 分位 (q*=0.7, 1月标定: 见式(22))
+e_net = (L_act - L_hat) - (PV_act - PV_hat)          # 升级预测模型的净需求残差
+buf = np.quantile(e_net[max(0,i-30):i], 0.7, axis=0) if i >= 7 else np.zeros(144)
+
+# 2) 0:00 计划 LP -> 计划购电量 P0 与计划充放电量 C0,D0 (式(4)-(8))
+r0 = solve_day(price, L_hat[i] + buf, PV_hat[i], soc0, soc_end=None, v=v)
+
+# 3) 日内实时平衡控制: 只使用当前实测 L_t,PV_t 与当前储电量 soc (因果、可实行)
+for t in range(144):
+    c_ok = min(max(C0[t], 0), C_MAX, (SOC_MAX - soc) / ETA_C)          # ① 裁剪为物理可行
+    d_ok = min(max(D0[t], 0), C_MAX, ETA_D * max(0, soc - SOC_MIN + ETA_C * c_ok))
+    C[t], D[t] = c_ok, d_ok
+    gap = L[t] - (PV[t] + P0[t] + D[t] - C[t])
+    if gap > 0:                                                        # ② 缺额: 先减充, 再增放
+        cut = min(C[t], gap); C[t] -= cut; gap -= cut
+        extra = min(gap, C_MAX - D[t], ETA_D * max(0, soc - SOC_MIN + ETA_C * C[t]) - D[t])
+        D[t] += extra; gap -= extra
+    elif gap < 0:                                                      # ③ 富余: 先减放, 再增充
+        cut = min(D[t], -gap); D[t] -= cut; gap += cut
+        extra = min(-gap, C_MAX - C[t], (SOC_MAX - soc + D[t] / ETA_D) / ETA_C - C[t])
+        C[t] += extra; gap += extra
+    E_em[t] = max(0.0, gap)                                            # 兜不住的缺口 -> 5 倍紧急购电
+    soc += ETA_C * C[t] - D[t] / ETA_D                                 # SOC 递推, 逐时段校验
+\end{lstlisting}
+
+\subsection{程序正确性验证（三重独立证据）}
+\label{sec:appendix_verify}
+
+本文用三条\textbf{相互独立}的证据保证“论文数字 $=$ 结果文件 $=$ 原始数据”：
+
+\begin{enumerate}[label=(\arabic*), leftmargin=2.2em, itemsep=1pt]
+\item \textbf{残差级校验（模型自洽）}：管道内部在每一天、每个时段断言
+功率平衡 $PV_t+P_t+D_t-C_t\ge L_t$、SOC 递推 $E_{t+1}=E_t+0.9C_t-D_t/0.9$、
+$1200\le E_t\le10800$、$0\le C_t,D_t\le833.33$ 与“不同时充放电”。
+全年 334 天的最大功率平衡残差为 $2.3\times10^{-13}$ kWh（机器精度），
+即“允许弃光”的松弛量全部可由弃光解释，不存在数值性缺电。
+\item \textbf{独立审计（\texttt{audit\_results.py}）}：该脚本\textbf{不读取任何中间变量}，
+只读提交的 5 个 \texttt{result*.xlsx} 与原始附件2/附件4，按附件5 各表的定义
+逐时段重算：功率平衡与弃光量、SOC 递推与限幅、充放电功率上限、
+计划/调整/紧急三段计价之和。四问全部通过（差异 $<10^{-6}$ 元）；
+审计同时校核储电量链条的跨日衔接（$E_{145}^{(d)}=E_1^{(d+1)}$）。
+\item \textbf{求解器稳健性（\texttt{solver\_robustness\_final.py}）}：
+把与本文完全相同的一条管道分别交给 HiGHS 的\textbf{对偶单纯形}与\textbf{内点法}求解，
+问题二全年费用\textbf{完全一致}（13\,655\,835 元）、问题三相差 0.043\%
+（13\,576\,891 元 vs 13\,571\,071 元，内点法略低）。这说明模型存在大量
+“同费用、不同充放电时点”的等价最优解（内点法返回的甚至是最优面上的内点，
+需先抵消同时充放电的退化表示），但\textbf{费用结论不依赖求解器返回哪一个顶点}——
+0.04\% 的差异远小于第 \ref{sec:compare} 节中各方法之间 $>1\%$ 的差异，
+故“方法 $>$ 方法”的排序结论是稳健的。
+\end{enumerate}
+
+此外，本文的关键结论都有\textbf{同口径的多方法对照}（第 \ref{sec:compare} 节）：
+计划依据的 4 种构造、报童分位的 5 个水平、裕度的 5 种形式、执行的 3 种机制、
+调整的 7 种时刻组合，以及随机规划／天眼下界／无储能三条对照链条，
+全部在同一“因果口径”下重算，避免了口径混用带来的虚优。
+
+\subsection{结果文件与数据资产}
+
+\begin{table}[htbp]
+\centering
+\caption{交付文件清单}
+\label{tab:deliver}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+文件 & 内容 & 规模 \\
+\midrule
+\texttt{result1.xlsx} & 问题一：144 时段计划购电量 + 6 段充放电量 + 0:00/24:00 储电量 & 2 表 \\
+\texttt{result2.xlsx} & 问题二：334 天计划购电量（含全天购电量/购电费）+ 充放电量 + 紧急购电量 & 3 表 \\
+\texttt{result3.xlsx} & 问题三：计划购电量、调整购电量、最终充放电量、紧急购电量 & 4 表 \\
+\texttt{result4-2.xlsx} & 问题四（对应问题二）全部结果 & 3 表 \\
+\texttt{result4-3.xlsx} & 问题四（对应问题三）全部结果 & 4 表 \\
+\texttt{day\_slots.parquet} 等 & 清洗后统一时间轴数据（365$\times$144）与衍生特征 & 12 个数据文件 \\
+\texttt{figures/*.png} & 论文全部插图（调度、规律、对比、平衡过程、执行机制） & 11 张 \\
+\texttt{07\_预测模型实验/} & 预测模型的完整实验报告、精度/费用数据与 15 张多样化图表 & 15 图 $+$ 6 数据 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{AI 工具使用详情（摘要）}
+
+\begin{table}[htbp]
+\centering
+\caption{AI 工具使用情况}
+\label{tab:ai}
+\small
+\begin{tabularx}{\textwidth}{@{}p{3.2cm}X@{}}
+\toprule
+项目 & 说明 \\
+\midrule
+工具名称 & 大语言模型（DeepSeek 系列），配合 Python/SciPy 计算环境 \\
+使用环节 & ①数据清洗与插值代码编写；②LP/SAA/敏感性实验代码编写与调试；\\
+ & ③绘图脚本编写；④文献检索与资料整理；⑤论文语言润色 \\
+人工核验 & 全部模型公式由参赛队推导并逐项核对；所有数值结果均由脚本独立重算并与
+结果文件比对；关键结论（如周内规律、信息价值分解）均以数据图表复核 \\
+采纳情况 & 采纳代码框架与润色建议；模型选型、口径假设与结论均由参赛队主导确定 \\
+\bottomrule
+\end{tabularx}
+\end{table}

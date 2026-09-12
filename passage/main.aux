@@ -1,0 +1,285 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand*\HyPL@Entry[1]{}
+\HyPL@Entry{0<</S/D>>}
+\@writefile{toc}{\contentsline {section}{\numberline {1}问题重述}{2}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}问题背景}{2}{subsection.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}需要解决的问题}{3}{subsection.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3}数据与参数说明}{3}{subsection.1.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces 原始数据与储能参数清单}}{3}{table.caption.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{tab:data}{{1}{3}{原始数据与储能参数清单}{table.caption.1}{}}
+\newlabel{tab:data@cref}{{[table][1][]1}{[1][3][]3}{}{}{}}
+\citation{ieee_tou}
+\citation{thu_ess}
+\citation{cn111260354}
+\@writefile{toc}{\contentsline {section}{\numberline {2}问题分析}{4}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}机理分析\nobreak  ：三个物理关系与三层成本}{4}{subsection.2.1}\protected@file@percent }
+\newlabel{eq:balance_general}{{1}{4}{机理分析\nobreak ：三个物理关系与三层成本}{equation.1}{}}
+\newlabel{eq:balance_general@cref}{{[equation][1][]1}{[1][4][]4}{}{}{}}
+\newlabel{eq:soc}{{2}{4}{机理分析\nobreak ：三个物理关系与三层成本}{equation.2}{}}
+\newlabel{eq:soc@cref}{{[equation][2][]2}{[1][4][]4}{}{}{}}
+\newlabel{eq:bounds}{{3}{4}{机理分析\nobreak ：三个物理关系与三层成本}{equation.3}{}}
+\newlabel{eq:bounds@cref}{{[equation][3][]3}{[1][4][]4}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}四问的信息结构与决策结构差异}{4}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}方法选型与理由}{4}{subsection.2.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces 四问的信息集与结算规则对比}}{5}{table.caption.2}\protected@file@percent }
+\newlabel{tab:info}{{2}{5}{四问的信息集与结算规则对比}{table.caption.2}{}}
+\newlabel{tab:info@cref}{{[table][2][]2}{[1][4][]5}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces 总体技术路线\nobreak  ：数据规律 $\to $ 计划依据 $\to $ 线性规划 $\to $ 滚动调整 $\to $ 实时结算}}{5}{figure.caption.3}\protected@file@percent }
+\newlabel{fig:framework}{{1}{5}{总体技术路线\nobreak ：数据规律 $\to $ 计划依据 $\to $ 线性规划 $\to $ 滚动调整 $\to $ 实时结算}{figure.caption.3}{}}
+\newlabel{fig:framework@cref}{{[figure][1][]1}{[1][4][]5}{}{}{}}
+\citation{mpc}
+\citation{cn102184475}
+\@writefile{toc}{\contentsline {section}{\numberline {3}数据探索与规律发现}{6}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}数据总览与质量核验}{6}{subsection.3.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces 数据质量核验结果（清洗前后\nobreak  ）}}{6}{table.caption.4}\protected@file@percent }
+\newlabel{tab:quality}{{3}{6}{数据质量核验结果（清洗前后\nobreak ）}{table.caption.4}{}}
+\newlabel{tab:quality@cref}{{[table][3][]3}{[1][6][]6}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}规律一\nobreak  ：周内负荷规律（周五\nobreak  、周六显著偏低\nobreak  ）}{7}{subsection.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}规律二\nobreak  ：周内电价规律（周五\nobreak  、周六显著偏低\nobreak  ）}{7}{subsection.3.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces 周内电价规律的日历验证（2025 年 1 月第一周\nobreak  ）}}{7}{table.caption.5}\protected@file@percent }
+\newlabel{tab:calendar}{{4}{7}{周内电价规律的日历验证（2025 年 1 月第一周\nobreak ）}{table.caption.5}{}}
+\newlabel{tab:calendar@cref}{{[table][4][]4}{[1][7][]7}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}规律三\nobreak  ：光伏季节特征（强季节 + 雨季凹陷\nobreak  ）}{8}{subsection.3.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces 周内规律\nobreak  ：日均用电量（左上\nobreak  ）\nobreak  、日均电价（右上\nobreak  ）\nobreak  、逐月$\times $星期电价热力图（左下\nobreak  ）\nobreak  、 负荷季节特征与电价日内结构（右下\nobreak  ）}}{8}{figure.caption.6}\protected@file@percent }
+\newlabel{fig:weekly}{{2}{8}{周内规律\nobreak ：日均用电量（左上\nobreak ）\nobreak 、日均电价（右上\nobreak ）\nobreak 、逐月$\times $星期电价热力图（左下\nobreak ）\nobreak 、 负荷季节特征与电价日内结构（右下\nobreak ）}{figure.caption.6}{}}
+\newlabel{fig:weekly@cref}{{[figure][2][]2}{[1][8][]8}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}规律四\nobreak  ：光伏与负荷噪声的重尾特征}{8}{subsection.3.5}\protected@file@percent }
+\citation{cqut253}
+\citation{cqut276}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces 光伏季节特征\nobreak  ：全年日电量与正弦拟合（左上\nobreak  ）\nobreak  、月度均值与雨季凹陷（右上\nobreak  ）\nobreak  、 四季日曲线形态（左下\nobreak  ）\nobreak  、有效日照时长（右下\nobreak  ）}}{9}{figure.caption.7}\protected@file@percent }
+\newlabel{fig:pvseason}{{3}{9}{光伏季节特征\nobreak ：全年日电量与正弦拟合（左上\nobreak ）\nobreak 、月度均值与雨季凹陷（右上\nobreak ）\nobreak 、 四季日曲线形态（左下\nobreak ）\nobreak 、有效日照时长（右下\nobreak ）}{figure.caption.7}{}}
+\newlabel{fig:pvseason@cref}{{[figure][3][]3}{[1][8][]9}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces 安全裕度（缓冲\nobreak  ）方案的对照实验（全年 2.1--12.31 购电总费用\nobreak  ）}}{9}{table.caption.8}\protected@file@percent }
+\newlabel{tab:buffer}{{5}{9}{安全裕度（缓冲\nobreak ）方案的对照实验（全年 2.1--12.31 购电总费用\nobreak ）}{table.caption.8}{}}
+\newlabel{tab:buffer@cref}{{[table][5][]5}{[1][9][]9}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}规律五\nobreak  ：预测信息价值分解（预言机分析\nobreak  ）}{10}{subsection.3.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.7}规律六\nobreak  ：预报误差随提前期增长}{10}{subsection.3.7}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces 噪声与季节性证据\nobreak  ：残差逐月均值$\pm $标准差（左\nobreak  ）\nobreak  、预言机信息价值分解（中\nobreak  ）\nobreak  、 距完全信息下界的缺口按月分布（右\nobreak  ）}}{11}{figure.caption.9}\protected@file@percent }
+\newlabel{fig:noise}{{4}{11}{噪声与季节性证据\nobreak ：残差逐月均值$\pm $标准差（左\nobreak ）\nobreak 、预言机信息价值分解（中\nobreak ）\nobreak 、 距完全信息下界的缺口按月分布（右\nobreak ）}{figure.caption.9}{}}
+\newlabel{fig:noise@cref}{{[figure][4][]4}{[1][10][]11}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces 光伏预报误差\nobreak  ：按发布时刻与提前期分桶的平均绝对误差}}{11}{figure.caption.10}\protected@file@percent }
+\newlabel{fig:fcerr}{{5}{11}{光伏预报误差\nobreak ：按发布时刻与提前期分桶的平均绝对误差}{figure.caption.10}{}}
+\newlabel{fig:fcerr@cref}{{[figure][5][]5}{[1][10][]11}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces 全部数据规律及其建模决策}}{11}{table.caption.11}\protected@file@percent }
+\newlabel{tab:patterns}{{6}{11}{全部数据规律及其建模决策}{table.caption.11}{}}
+\newlabel{tab:patterns@cref}{{[table][6][]6}{[1][10][]11}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.8}规律与建模决策汇总}{12}{subsection.3.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}模型假设与符号说明}{12}{section.4}\protected@file@percent }
+\newlabel{sec:assume}{{4}{12}{模型假设与符号说明}{section.4}{}}
+\newlabel{sec:assume@cref}{{[section][4][]4}{[1][10][]12}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}模型假设}{12}{subsection.4.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces 主要符号}}{13}{table.caption.12}\protected@file@percent }
+\newlabel{tab:symbols}{{7}{13}{主要符号}{table.caption.12}{}}
+\newlabel{tab:symbols@cref}{{[table][7][]7}{[1][12][]13}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}符号说明}{13}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}通用单日线性规划模型}{13}{subsection.4.3}\protected@file@percent }
+\newlabel{eq:obj}{{5}{13}{通用单日线性规划模型}{equation.5}{}}
+\newlabel{eq:obj@cref}{{[equation][5][]5}{[1][13][]13}{}{}{}}
+\newlabel{eq:c1}{{6}{13}{通用单日线性规划模型}{equation.6}{}}
+\newlabel{eq:c1@cref}{{[equation][6][]6}{[1][13][]13}{}{}{}}
+\newlabel{eq:c2}{{7}{13}{通用单日线性规划模型}{equation.7}{}}
+\newlabel{eq:c2@cref}{{[equation][7][]7}{[1][13][]13}{}{}{}}
+\newlabel{eq:c3}{{8}{13}{通用单日线性规划模型}{equation.8}{}}
+\newlabel{eq:c3@cref}{{[equation][8][]8}{[1][13][]13}{}{}{}}
+\newlabel{eq:c4}{{9}{13}{通用单日线性规划模型}{equation.9}{}}
+\newlabel{eq:c4@cref}{{[equation][9][]9}{[1][13][]13}{}{}{}}
+\newlabel{eq:c5}{{10}{13}{通用单日线性规划模型}{equation.10}{}}
+\newlabel{eq:c5@cref}{{[equation][10][]10}{[1][13][]13}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}问题一\nobreak  ：单典型日确定性最优计划模型}{13}{section.5}\protected@file@percent }
+\newlabel{sec:q1}{{5}{13}{问题一\nobreak ：单典型日确定性最优计划模型}{section.5}{}}
+\newlabel{sec:q1@cref}{{[section][5][]5}{[1][13][]13}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}模型建立}{13}{subsection.5.1}\protected@file@percent }
+\newlabel{eq:q1end}{{11}{14}{模型建立}{equation.11}{}}
+\newlabel{eq:q1end@cref}{{[equation][11][]11}{[1][13][]14}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}求解结果}{14}{subsection.5.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces 问题一\nobreak  ：指定时段的购电量及全天购电量与购电费（表 1 格式\nobreak  ）}}{14}{table.caption.13}\protected@file@percent }
+\newlabel{tab:q1a}{{8}{14}{问题一\nobreak ：指定时段的购电量及全天购电量与购电费（表 1 格式\nobreak ）}{table.caption.13}{}}
+\newlabel{tab:q1a@cref}{{[table][8][]8}{[1][14][]14}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces 问题一\nobreak  ：储能设备分时段充放电量与 0:00\nobreak  、24:00 储电量（表 2 格式\nobreak  ）}}{14}{table.caption.14}\protected@file@percent }
+\newlabel{tab:q1b}{{9}{14}{问题一\nobreak ：储能设备分时段充放电量与 0:00\nobreak 、24:00 储电量（表 2 格式\nobreak ）}{table.caption.14}{}}
+\newlabel{tab:q1b@cref}{{[table][9][]9}{[1][14][]14}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}结果分析}{14}{subsection.5.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces 问题一最优调度\nobreak  ：功率曲线（上\nobreak  ）与储电量轨迹（下\nobreak  ）}}{15}{figure.caption.15}\protected@file@percent }
+\newlabel{fig:q1}{{6}{15}{问题一最优调度\nobreak ：功率曲线（上\nobreak ）与储电量轨迹（下\nobreak ）}{figure.caption.15}{}}
+\newlabel{fig:q1@cref}{{[figure][6][]6}{[1][14][]15}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}方法对照\nobreak  ：LP 与启发式\nobreak  、与无储能基线}{15}{subsection.5.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces 问题一三种方法的对照（典型日购电费\nobreak  ）}}{15}{table.caption.16}\protected@file@percent }
+\newlabel{tab:q1cmp}{{10}{15}{问题一三种方法的对照（典型日购电费\nobreak ）}{table.caption.16}{}}
+\newlabel{tab:q1cmp@cref}{{[table][10][]10}{[1][14][]15}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}问题二\nobreak  ：全年逐日“计划—结算\nobreak  ”两阶段模型}{15}{section.6}\protected@file@percent }
+\newlabel{sec:q2}{{6}{15}{问题二\nobreak ：全年逐日“计划—结算\nobreak ”两阶段模型}{section.6}{}}
+\newlabel{sec:q2@cref}{{[section][6][]6}{[1][15][]15}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}信息结构与我方预测模型}{15}{subsection.6.1}\protected@file@percent }
+\citation{newsboy}
+\newlabel{eq:basisL}{{12}{16}{信息结构与我方预测模型}{equation.12}{}}
+\newlabel{eq:basisL@cref}{{[equation][12][]12}{[1][16][]16}{}{}{}}
+\newlabel{eq:loadweights}{{13}{16}{信息结构与我方预测模型}{equation.13}{}}
+\newlabel{eq:loadweights@cref}{{[equation][13][]13}{[1][16][]16}{}{}{}}
+\newlabel{eq:basisPV}{{14}{16}{信息结构与我方预测模型}{equation.14}{}}
+\newlabel{eq:basisPV@cref}{{[equation][14][]14}{[1][16][]16}{}{}{}}
+\newlabel{eq:qp}{{15}{16}{信息结构与我方预测模型}{equation.15}{}}
+\newlabel{eq:qp@cref}{{[equation][15][]15}{[1][16][]16}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces 预测模型精度对照（2.1--12.31 外样本\nobreak  ，单位\nobreak  ：负荷/光伏 kW\nobreak  、电价 元/kWh\nobreak  ）}}{17}{table.caption.17}\protected@file@percent }
+\newlabel{tab:fcacc}{{11}{17}{预测模型精度对照（2.1--12.31 外样本\nobreak ，单位\nobreak ：负荷/光伏 kW\nobreak 、电价 元/kWh\nobreak ）}{table.caption.17}{}}
+\newlabel{tab:fcacc@cref}{{[table][11][]11}{[1][16][]17}{}{}{}}
+\newlabel{eq:buffer}{{16}{17}{信息结构与我方预测模型}{equation.16}{}}
+\newlabel{eq:buffer@cref}{{[equation][16][]16}{[1][16][]17}{}{}{}}
+\newlabel{eq:newsboy}{{17}{17}{信息结构与我方预测模型}{equation.17}{}}
+\newlabel{eq:newsboy@cref}{{[equation][17][]17}{[1][17][]17}{}{}{}}
+\newlabel{eq:qtune}{{18}{17}{信息结构与我方预测模型}{equation.18}{}}
+\newlabel{eq:qtune@cref}{{[equation][18][]18}{[1][17][]17}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}计划模型与结算模型（分开建模\nobreak  ）}{17}{subsection.6.2}\protected@file@percent }
+\newlabel{eq:clip}{{19}{18}{计划模型与结算模型（分开建模\nobreak ）}{equation.19}{}}
+\newlabel{eq:clip@cref}{{[equation][19][]19}{[1][18][]18}{}{}{}}
+\newlabel{eq:up1}{{20}{18}{计划模型与结算模型（分开建模\nobreak ）}{equation.20}{}}
+\newlabel{eq:up1@cref}{{[equation][20][]20}{[1][18][]18}{}{}{}}
+\newlabel{eq:up2}{{21}{18}{计划模型与结算模型（分开建模\nobreak ）}{equation.21}{}}
+\newlabel{eq:up2@cref}{{[equation][21][]21}{[1][18][]18}{}{}{}}
+\newlabel{eq:dn1}{{22}{18}{计划模型与结算模型（分开建模\nobreak ）}{equation.22}{}}
+\newlabel{eq:dn1@cref}{{[equation][22][]22}{[1][18][]18}{}{}{}}
+\newlabel{eq:dn2}{{23}{18}{计划模型与结算模型（分开建模\nobreak ）}{equation.23}{}}
+\newlabel{eq:dn2@cref}{{[equation][23][]23}{[1][18][]18}{}{}{}}
+\newlabel{eq:socrec}{{24}{18}{计划模型与结算模型（分开建模\nobreak ）}{equation.24}{}}
+\newlabel{eq:socrec@cref}{{[equation][24][]24}{[1][18][]18}{}{}{}}
+\newlabel{eq:q2cost}{{25}{19}{计划模型与结算模型（分开建模\nobreak ）}{equation.25}{}}
+\newlabel{eq:q2cost@cref}{{[equation][25][]25}{[1][19][]19}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces 问题二\nobreak  ：同一计划下三种执行／结算方式的全年费用对照（2.1--12.31\nobreak  ）}}{19}{table.caption.18}\protected@file@percent }
+\newlabel{tab:q2exec}{{12}{19}{问题二\nobreak ：同一计划下三种执行／结算方式的全年费用对照（2.1--12.31\nobreak ）}{table.caption.18}{}}
+\newlabel{tab:q2exec@cref}{{[table][12][]12}{[1][19][]19}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces 同一 0:00 计划下三种执行机制的全年费用分解（左\nobreak  ）与采用方案的逐日紧急购电量（右\nobreak  ）\nobreak  ： “0:00 定下的响应规则\nobreak  ”把紧急购电费由 169.6 万元压到 78.9 万元}}{19}{figure.caption.19}\protected@file@percent }
+\newlabel{fig:q2exec}{{7}{19}{同一 0:00 计划下三种执行机制的全年费用分解（左\nobreak ）与采用方案的逐日紧急购电量（右\nobreak ）\nobreak ： “0:00 定下的响应规则\nobreak ”把紧急购电费由 169.6 万元压到 78.9 万元}{figure.caption.19}{}}
+\newlabel{fig:q2exec@cref}{{[figure][7][]7}{[1][19][]19}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}全年结果}{19}{subsection.6.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {13}{\ignorespaces 问题二全年（2025-02-01 至 12-31\nobreak  ，334 天\nobreak  ）各方法对照 （全部方法采用同一实时平衡控制结算\nobreak  ）}}{20}{table.caption.20}\protected@file@percent }
+\newlabel{tab:q2cmp}{{13}{20}{问题二全年（2025-02-01 至 12-31\nobreak ，334 天\nobreak ）各方法对照 （全部方法采用同一实时平衡控制结算\nobreak ）}{table.caption.20}{}}
+\newlabel{tab:q2cmp@cref}{{[table][13][]13}{[1][19][]20}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces 问题二\nobreak  ：全年逐日购电总费用对比（左\nobreak  ）\nobreak  、紧急购电量按月汇总（中\nobreak  ）\nobreak  、 2025-06-21 计划与实际（右\nobreak  ）}}{21}{figure.caption.21}\protected@file@percent }
+\newlabel{fig:q2}{{8}{21}{问题二\nobreak ：全年逐日购电总费用对比（左\nobreak ）\nobreak 、紧急购电量按月汇总（中\nobreak ）\nobreak 、 2025-06-21 计划与实际（右\nobreak ）}{figure.caption.21}{}}
+\newlabel{fig:q2@cref}{{[figure][8][]8}{[1][21][]21}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces 预测模型对照\nobreak  ：分类组合负荷模型与岭回归堆叠光伏模型的精度优势}}{21}{figure.caption.22}\protected@file@percent }
+\newlabel{fig:q2basis}{{9}{21}{预测模型对照\nobreak ：分类组合负荷模型与岭回归堆叠光伏模型的精度优势}{figure.caption.22}{}}
+\newlabel{fig:q2basis@cref}{{[figure][9][]9}{[1][21][]21}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}指定日期结果（表 1\nobreak  、表 2\nobreak  、表 3 格式\nobreak  ）}{21}{subsection.6.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces 实时平衡控制过程\nobreak  ：上行（03-20\nobreak  ）计划偏保守\nobreak  、储能吸收富余\nobreak  ；下行（09-23\nobreak  ）实际高于计划\nobreak  、 储能兜底后仍有少量紧急购电}}{22}{figure.caption.23}\protected@file@percent }
+\newlabel{fig:q2balance}{{10}{22}{实时平衡控制过程\nobreak ：上行（03-20\nobreak ）计划偏保守\nobreak 、储能吸收富余\nobreak ；下行（09-23\nobreak ）实际高于计划\nobreak 、 储能兜底后仍有少量紧急购电}{figure.caption.23}{}}
+\newlabel{fig:q2balance@cref}{{[figure][10][]10}{[1][21][]22}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces 问题二\nobreak  ：指定日期关键时段计划购电量与全天购电量\nobreak  、购电费（表 1 格式\nobreak  ，kWh/元\nobreak  ）}}{22}{table.caption.24}\protected@file@percent }
+\newlabel{tab:q2t1}{{14}{22}{问题二\nobreak ：指定日期关键时段计划购电量与全天购电量\nobreak 、购电费（表 1 格式\nobreak ，kWh/元\nobreak ）}{table.caption.24}{}}
+\newlabel{tab:q2t1@cref}{{[table][14][]14}{[1][21][]22}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {15}{\ignorespaces 问题二\nobreak  ：指定日期最终储能充放电量与 0:00\nobreak  、24:00 储电量（表 2 格式\nobreak  ，kWh\nobreak  ）}}{23}{table.caption.25}\protected@file@percent }
+\newlabel{tab:q2t2}{{15}{23}{问题二\nobreak ：指定日期最终储能充放电量与 0:00\nobreak 、24:00 储电量（表 2 格式\nobreak ，kWh\nobreak ）}{table.caption.25}{}}
+\newlabel{tab:q2t2@cref}{{[table][15][]15}{[1][21][]23}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {16}{\ignorespaces 问题二\nobreak  ：指定日期紧急购电时间段与购电量（表 3 格式\nobreak  ，kWh\nobreak  ）}}{23}{table.caption.26}\protected@file@percent }
+\newlabel{tab:q2t3}{{16}{23}{问题二\nobreak ：指定日期紧急购电时间段与购电量（表 3 格式\nobreak ，kWh\nobreak ）}{table.caption.26}{}}
+\newlabel{tab:q2t3@cref}{{[table][16][]16}{[1][21][]23}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7}问题三\nobreak  ：滚动预报下的“计划—调整—紧急\nobreak  ”模型}{23}{section.7}\protected@file@percent }
+\newlabel{sec:q3}{{7}{23}{问题三\nobreak ：滚动预报下的“计划—调整—紧急\nobreak ”模型}{section.7}{}}
+\newlabel{sec:q3@cref}{{[section][7][]7}{[1][21][]23}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}模型建立}{23}{subsection.7.1}\protected@file@percent }
+\newlabel{eq:SX}{{26}{23}{模型建立}{equation.26}{}}
+\newlabel{eq:SX@cref}{{[equation][26][]26}{[1][23][]23}{}{}{}}
+\newlabel{eq:q3price}{{27}{23}{模型建立}{equation.27}{}}
+\newlabel{eq:q3price@cref}{{[equation][27][]27}{[1][23][]23}{}{}{}}
+\newlabel{eq:qtune3}{{28}{24}{模型建立}{equation.28}{}}
+\newlabel{eq:qtune3@cref}{{[equation][28][]28}{[1][23][]24}{}{}{}}
+\newlabel{eq:adj_obj}{{29}{24}{模型建立}{equation.29}{}}
+\newlabel{eq:adj_obj@cref}{{[equation][29][]29}{[1][24][]24}{}{}{}}
+\newlabel{eq:adj_bal}{{30}{24}{模型建立}{equation.30}{}}
+\newlabel{eq:adj_bal@cref}{{[equation][30][]30}{[1][24][]24}{}{}{}}
+\newlabel{eq:adj_soc}{{31}{24}{模型建立}{equation.31}{}}
+\newlabel{eq:adj_soc@cref}{{[equation][31][]31}{[1][24][]24}{}{}{}}
+\newlabel{eq:adj_link}{{32}{24}{模型建立}{equation.32}{}}
+\newlabel{eq:adj_link@cref}{{[equation][32][]32}{[1][24][]24}{}{}{}}
+\newlabel{eq:adjbuffer}{{33}{24}{模型建立}{equation.33}{}}
+\newlabel{eq:adjbuffer@cref}{{[equation][33][]33}{[1][24][]24}{}{}{}}
+\newlabel{eq:q3cost}{{34}{24}{模型建立}{equation.34}{}}
+\newlabel{eq:q3cost@cref}{{[equation][34][]34}{[1][24][]24}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}结果\nobreak  ：是否需要引入其他时刻的预报}{24}{subsection.7.2}\protected@file@percent }
+\newlabel{eq:marginal}{{35}{24}{结果\nobreak ：是否需要引入其他时刻的预报}{equation.35}{}}
+\newlabel{eq:marginal@cref}{{[equation][35][]35}{[1][24][]24}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {17}{\ignorespaces 问题三\nobreak  ：不同滚动方案全年（2.1--12.31\nobreak  ）费用对照（单位\nobreak  ：元\nobreak  ）}}{25}{table.caption.27}\protected@file@percent }
+\newlabel{tab:q3cmp}{{17}{25}{问题三\nobreak ：不同滚动方案全年（2.1--12.31\nobreak ）费用对照（单位\nobreak ：元\nobreak ）}{table.caption.27}{}}
+\newlabel{tab:q3cmp@cref}{{[table][17][]17}{[1][24][]25}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}指定日期结果（表 1\nobreak  、表 2\nobreak  、表 3 格式\nobreak  ）}{25}{subsection.7.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces 问题三\nobreak  ：各调整方案全年费用（左上\nobreak  ）\nobreak  、调整的边际价值（右上\nobreak  ）\nobreak  、费用结构分解（左下\nobreak  ）\nobreak  、 2025-06-21 计划与逐段调整（右下\nobreak  ）}}{26}{figure.caption.28}\protected@file@percent }
+\newlabel{fig:q3}{{11}{26}{问题三\nobreak ：各调整方案全年费用（左上\nobreak ）\nobreak 、调整的边际价值（右上\nobreak ）\nobreak 、费用结构分解（左下\nobreak ）\nobreak 、 2025-06-21 计划与逐段调整（右下\nobreak ）}{figure.caption.28}{}}
+\newlabel{fig:q3@cref}{{[figure][11][]11}{[1][25][]26}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {18}{\ignorespaces 问题三\nobreak  ：指定日期关键时段计划购电量与全天购电量\nobreak  、购电费（表 1 格式\nobreak  ，kWh/元\nobreak  ）}}{26}{table.caption.29}\protected@file@percent }
+\newlabel{tab:q3t1}{{18}{26}{问题三\nobreak ：指定日期关键时段计划购电量与全天购电量\nobreak 、购电费（表 1 格式\nobreak ，kWh/元\nobreak ）}{table.caption.29}{}}
+\newlabel{tab:q3t1@cref}{{[table][18][]18}{[1][25][]26}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {19}{\ignorespaces 问题三\nobreak  ：指定日期最终储能充放电量与 0:00\nobreak  、24:00 储电量（表 2 格式\nobreak  ，kWh\nobreak  ）}}{27}{table.caption.30}\protected@file@percent }
+\newlabel{tab:q3t2}{{19}{27}{问题三\nobreak ：指定日期最终储能充放电量与 0:00\nobreak 、24:00 储电量（表 2 格式\nobreak ，kWh\nobreak ）}{table.caption.30}{}}
+\newlabel{tab:q3t2@cref}{{[table][19][]19}{[1][25][]27}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {20}{\ignorespaces 问题三\nobreak  ：指定日期紧急购电时间段与购电量（表 3 格式\nobreak  ，kWh\nobreak  ）}}{27}{table.caption.31}\protected@file@percent }
+\newlabel{tab:q3t3}{{20}{27}{问题三\nobreak ：指定日期紧急购电时间段与购电量（表 3 格式\nobreak ，kWh\nobreak ）}{table.caption.31}{}}
+\newlabel{tab:q3t3@cref}{{[table][20][]20}{[1][25][]27}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8}问题四\nobreak  ：实时波动电价下的重算}{27}{section.8}\protected@file@percent }
+\newlabel{sec:q4}{{8}{27}{问题四\nobreak ：实时波动电价下的重算}{section.8}{}}
+\newlabel{sec:q4@cref}{{[section][8][]8}{[1][27][]27}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}模型调整}{27}{subsection.8.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}结果与对照}{28}{subsection.8.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {21}{\ignorespaces 问题四\nobreak  ：波动电价下问题二（Q4-2\nobreak  ）与问题三（Q4-3\nobreak  ）全年费用（2.1--12.31\nobreak  ，单位\nobreak  ：元\nobreak  ）}}{28}{table.caption.32}\protected@file@percent }
+\newlabel{tab:q4cmp}{{21}{28}{问题四\nobreak ：波动电价下问题二（Q4-2\nobreak ）与问题三（Q4-3\nobreak ）全年费用（2.1--12.31\nobreak ，单位\nobreak ：元\nobreak ）}{table.caption.32}{}}
+\newlabel{tab:q4cmp@cref}{{[table][21][]21}{[1][28][]28}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces 问题四\nobreak  ：各方案全年费用（左\nobreak  ）\nobreak  、Q4-3 各调整方案对比（中\nobreak  ）\nobreak  、 2025-06-21 电价与调度（右\nobreak  ）}}{29}{figure.caption.33}\protected@file@percent }
+\newlabel{fig:q4}{{12}{29}{问题四\nobreak ：各方案全年费用（左\nobreak ）\nobreak 、Q4-3 各调整方案对比（中\nobreak ）\nobreak 、 2025-06-21 电价与调度（右\nobreak ）}{figure.caption.33}{}}
+\newlabel{fig:q4@cref}{{[figure][12][]12}{[1][29][]29}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}指定日期结果（问题四之三\nobreak  ）}{29}{subsection.8.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {22}{\ignorespaces 问题四之三\nobreak  ：指定日期关键时段计划购电量\nobreak  、全天购电量与费用（表 1 格式\nobreak  ，kWh/元\nobreak  ）}}{29}{table.caption.34}\protected@file@percent }
+\newlabel{tab:q4t1}{{22}{29}{问题四之三\nobreak ：指定日期关键时段计划购电量\nobreak 、全天购电量与费用（表 1 格式\nobreak ，kWh/元\nobreak ）}{table.caption.34}{}}
+\newlabel{tab:q4t1@cref}{{[table][22][]22}{[1][29][]29}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {9}方法比较与灵敏度分析}{29}{section.9}\protected@file@percent }
+\newlabel{sec:compare}{{9}{29}{方法比较与灵敏度分析}{section.9}{}}
+\newlabel{sec:compare@cref}{{[section][9][]9}{[1][29][]29}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.1}方法对照汇总}{29}{subsection.9.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {23}{\ignorespaces 问题四之三\nobreak  ：指定日期最终储能充放电量与 0:00\nobreak  、24:00 储电量（表 2 格式\nobreak  ，kWh\nobreak  ）}}{30}{table.caption.35}\protected@file@percent }
+\newlabel{tab:q4t2}{{23}{30}{问题四之三\nobreak ：指定日期最终储能充放电量与 0:00\nobreak 、24:00 储电量（表 2 格式\nobreak ，kWh\nobreak ）}{table.caption.35}{}}
+\newlabel{tab:q4t2@cref}{{[table][23][]23}{[1][29][]30}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {24}{\ignorespaces 问题四之三\nobreak  ：指定日期紧急购电时间段与购电量（表 3 格式\nobreak  ，kWh\nobreak  ）}}{30}{table.caption.36}\protected@file@percent }
+\newlabel{tab:q4t3}{{24}{30}{问题四之三\nobreak ：指定日期紧急购电时间段与购电量（表 3 格式\nobreak ，kWh\nobreak ）}{table.caption.36}{}}
+\newlabel{tab:q4t3@cref}{{[table][24][]24}{[1][29][]30}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {25}{\ignorespaces 全部方法的对照汇总（单位\nobreak  ：元\nobreak  ；问题二起统一采用因果口径实时平衡结算\nobreak  ）}}{31}{table.caption.37}\protected@file@percent }
+\newlabel{tab:allcmp}{{25}{31}{全部方法的对照汇总（单位\nobreak ：元\nobreak ；问题二起统一采用因果口径实时平衡结算\nobreak ）}{table.caption.37}{}}
+\newlabel{tab:allcmp@cref}{{[table][25][]25}{[1][29][]31}{}{}{}}
+\citation{vtpp}
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.2}参数灵敏度分析}{32}{subsection.9.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {26}{\ignorespaces 灵敏度分析（全部在升级预测口径下重算\nobreak  ；单位\nobreak  ：元\nobreak  ）}}{32}{table.caption.38}\protected@file@percent }
+\newlabel{tab:sens}{{26}{32}{灵敏度分析（全部在升级预测口径下重算\nobreak ；单位\nobreak ：元\nobreak ）}{table.caption.38}{}}
+\newlabel{tab:sens@cref}{{[table][26][]26}{[1][32][]32}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {10}模型评价与推广}{33}{section.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.1}模型优点}{33}{subsection.10.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.2}模型缺点与局限}{34}{subsection.10.2}\protected@file@percent }
+\bibcite{ieee_tou}{1}
+\bibcite{thu_ess}{2}
+\bibcite{mpc}{3}
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.3}模型改进与推广}{35}{subsection.10.3}\protected@file@percent }
+\bibcite{cn102184475}{4}
+\bibcite{cn111260354}{5}
+\bibcite{cqut253}{6}
+\bibcite{cqut276}{7}
+\bibcite{newsboy}{8}
+\bibcite{vtpp}{9}
+\@writefile{toc}{\contentsline {section}{\numberline {A}程序与数据清单}{36}{appendix.A}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}程序结构}{36}{subsection.A.1}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {1}{\ignorespaces 一键复现流程（Windows PowerShell）}}{36}{lstlisting.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {27}{\ignorespaces 程序清单与功能}}{37}{table.caption.41}\protected@file@percent }
+\newlabel{tab:code}{{27}{37}{程序清单与功能}{table.caption.41}{}}
+\newlabel{tab:code@cref}{{[table][27][]27}{[1][36][]37}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.2}核心代码（LP 引擎\nobreak  、报童缓冲与实时平衡控制\nobreak  ）}{38}{subsection.A.2}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {2}{\ignorespaces 单日 LP 引擎（节选：计划模式与调整模式的目标、约束装配）}}{38}{lstlisting.2}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3}{\ignorespaces 升级预测模型（负载：水平$\times $形状 + 分类凸组合；光伏/电价：因果岭回归堆叠），式 \eqref  {eq:basisL}--\eqref  {eq:basisPV}}}{38}{lstlisting.3}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4}{\ignorespaces 报童安全裕度与实时平衡控制结算（问题二核心，式 \eqref  {eq:buffer}、\eqref  {eq:clip}--\eqref  {eq:socrec}）}}{39}{lstlisting.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.3}程序正确性验证（三重独立证据\nobreak  ）}{39}{subsection.A.3}\protected@file@percent }
+\newlabel{sec:appendix_verify}{{A.3}{39}{程序正确性验证（三重独立证据\nobreak ）}{subsection.A.3}{}}
+\newlabel{sec:appendix_verify@cref}{{[subsection][3][1]A.3}{[1][39][]39}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.4}结果文件与数据资产}{40}{subsection.A.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {28}{\ignorespaces 交付文件清单}}{40}{table.caption.42}\protected@file@percent }
+\newlabel{tab:deliver}{{28}{40}{交付文件清单}{table.caption.42}{}}
+\newlabel{tab:deliver@cref}{{[table][28][]28}{[1][40][]40}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.5}AI 工具使用详情（摘要\nobreak  ）}{40}{subsection.A.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {29}{\ignorespaces AI 工具使用情况}}{41}{table.caption.43}\protected@file@percent }
+\newlabel{tab:ai}{{29}{41}{AI 工具使用情况}{table.caption.43}{}}
+\newlabel{tab:ai@cref}{{[table][29][]29}{[1][40][]41}{}{}{}}
+\gdef \@abspage@last{41}

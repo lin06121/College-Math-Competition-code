@@ -6,8 +6,9 @@
     python run_q3.py --q 0.6         # 指定报童分位（标定结果为 0.6）
     python run_q3.py --ablate        # 追加“各预报时刻价值”对照
 """
-# 1 月标定得到的报童分位（仅作默认值；main 会重新标定）
-DEFAULT_Q = 0.6
+# 1 月标定得到的参数（仅作默认值；main 会重新联合标定）
+DEFAULT_Q = 0.6        # 报童分位
+DEFAULT_LAM = 0.45     # 终端储能价值 λ（元/kWh）
 import sys
 import time
 import numpy as np
@@ -157,7 +158,7 @@ def describe(result_df, summary_df):
     print(f"  弃光电量     {s('curt_kWh'):>15,.2f} kWh")
 
 
-def run_ablation(q=DEFAULT_Q):
+def run_ablation(q=DEFAULT_Q, lam=DEFAULT_LAM):
     """各预报发布时刻的边际价值。"""
     data = load_problem3_data()
     sets = [("仅 0:00（无调整）", ("0:00",)),
@@ -172,7 +173,7 @@ def run_ablation(q=DEFAULT_Q):
     for tag, times in sets:
         _, s = simulate_year_q3(*data[:9], "2025-01-01", "2025-12-31",
                                 STORAGE_INITIAL_SOC, q=q, issue_times=times,
-                                debias=False)
+                                term_value=lam, debias=False)
         s = s[s["date"] >= pd.Timestamp("2025-02-01")]
         f = lambda c: s[c].sum()
         rows.append({"配置": tag, "总费用": f("total_cost"),
@@ -204,10 +205,15 @@ def main():
     t0 = time.time()
     if q is None:
         data = load_problem3_data()
-        print("在 2025-01-08 ~ 01-31 上标定报童分位 q：")
-        q, _ = solver_q3.calibrate_q_q3(data, verbose=True, debias=False)
-        print(f"  -> 标定结果 q* = {q}")
-    result_df, summary_df = solver_q3.solve_problem3(q=q, verbose=True)
+        print("在 2025-01-08 ~ 01-31 上联合标定 (q, λ)：")
+        q, lam, _ = solver_q3.calibrate_q_q3(data, verbose=True, debias=False)
+        print(f"  -> 标定结果 q* = {q}，λ* = {lam}")
+        result_df, summary_df = solver_q3.solve_problem3(
+            q=q, term_value=lam, verbose=True)
+    else:
+        # 只用 --q 覆盖 q 时，λ 仍由 1 月标定
+        result_df, summary_df = solver_q3.solve_problem3(q=q, verbose=True)
+        lam = DEFAULT_LAM
     print(f"\n求解耗时 {time.time() - t0:.1f} s")
 
     print("\n===== 校验 =====")
@@ -220,7 +226,7 @@ def main():
     print_paper_tables(result_df, summary_df)
 
     if "--ablate" in argv:
-        run_ablation(q=q)
+        run_ablation(q=q, lam=lam)
 
     print("\n输出文件：")
     for p in [res["result_xlsx"], ROOT / "table1_q3.csv", ROOT / "table2_q3.csv",
