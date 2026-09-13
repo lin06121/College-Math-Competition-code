@@ -91,8 +91,6 @@ def fig_q2_exec(cf, summary):
     abot.set_ylabel("全年费用 (万元)")
     atop.legend(frameon=False, fontsize=8, loc="lower left",
                 bbox_to_anchor=(0.0, 1.0), ncol=2)
-    abot.set_title("同一 0:00 计划下三种结算方式的费用分解（纵轴断轴）",
-                   fontsize=10, y=-0.30)
 
     # 右：紧急购电量（该机制真正改变的量）
     b.bar(x, emk, 0.55, color=[ORANGE, GREEN, GRAY])
@@ -101,11 +99,9 @@ def fig_q2_exec(cf, summary):
     b.set_xticks(x); b.set_xticklabels(tl, fontsize=9)
     b.set_ylabel("紧急购电量 (MWh)")
     b.set_ylim(0, max(emk) * 1.20)
-    b.set_title("紧急购电量：由 314 MWh 降至 86 MWh", fontsize=10)
     _style(b)
 
-    fig.suptitle("实时平衡控制的价值：同一计划下紧急购电费由 121.2 万元降至 48.5 万元", fontsize=11)
-    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    fig.tight_layout()
     p = OUT / "fig_q2_exec.png"
     fig.savefig(p, dpi=300); plt.close(fig)
     return p
@@ -145,7 +141,6 @@ def fig_q2_basis(cf):
     ax.set_xlabel("全年总费用 (万元)")
     ax.set_xlim(0, d["total_cost"].max() / 1e4 * 1.30)
     ax.invert_yaxis()
-    ax.set_title("计划依据、裕度与储能对全年费用的影响（同一因果结算）", fontsize=10)
     _style(ax)
     from matplotlib.patches import Patch
     ax.legend(handles=[Patch(color=C_ADOPT, label="本文采用"),
@@ -174,7 +169,6 @@ def fig_q2_annual(summary, details):
               label=f"日均 {s['total_cost'].mean()/1e4:.1f} 万元")
     a.set_xlabel("序日（2025-02-01 起）")
     a.set_ylabel("当日总费用 (万元)")
-    a.set_title("逐日购电总费用", fontsize=10)
     a.legend(frameon=False, fontsize=8)
     _style(a)
 
@@ -184,7 +178,6 @@ def fig_q2_annual(summary, details):
     b.bar(x, mon["em"] / 1e4, 0.6, bottom=mon["plan"] / 1e4, color=ORANGE, label="紧急购电费")
     b.set_xticks(x); b.set_xticklabels([f"{m}月" for m in mon["month"]], fontsize=8)
     b.set_ylabel("月度费用 (万元)")
-    b.set_title("各月费用构成", fontsize=10)
     b.legend(frameon=False, fontsize=8)
     _style(b)
 
@@ -192,11 +185,9 @@ def fig_q2_annual(summary, details):
     c.bar(x, mon["emk"] / 1e3, 0.6, color=GREEN)
     c.set_xticks(x); c.set_xticklabels([f"{m}月" for m in mon["month"]], fontsize=8)
     c.set_ylabel("紧急购电量 (MWh)")
-    c.set_title(f"各月紧急购电量（合计 {mon['emk'].sum()/1e3:,.0f} MWh）", fontsize=10)
     _style(c)
 
-    fig.suptitle("问题二全年表现（2025-02-01 至 12-31，334 天）", fontsize=11)
-    fig.tight_layout(rect=(0, 0, 1, 0.92))
+    fig.tight_layout()
     p = OUT / "fig_q2_annual.png"
     fig.savefig(p, dpi=300); plt.close(fig)
     return p
@@ -233,8 +224,7 @@ def fig_q2_balance(details, days=None):
         ax.legend(frameon=False, fontsize=8, ncol=3, loc="upper left")
     axes[-1].set_xlim(0, 24); axes[-1].set_xticks(np.arange(0, 25, 4))
     axes[-1].set_xlabel("时刻 (h)")
-    fig.suptitle("因果实时平衡控制过程：储能按实际净负荷与计划的偏差双向调整", fontsize=11)
-    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    fig.tight_layout()
     p = OUT / "fig_q2_balance.png"
     fig.savefig(p, dpi=300); plt.close(fig)
     return p

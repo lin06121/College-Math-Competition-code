@@ -1,0 +1,1603 @@
+% !TEX program = xelatex
+% 2026 高教社杯全国大学生数学建模竞赛 C 题
+% 微网与外部电网电力调控策略 —— Overleaf 单文件版(全部章节内联, 图片与 main.tex 同目录)
+% 编译方式: XeLaTeX(Overleaf 默认即可), 无需任何本地字体/模板文件
+\PassOptionsToPackage{fontset=fandol}{ctex}
+\documentclass[withoutpreface,bwprint]{cumcmthesis}
+\usepackage{cumcm2026}
+
+% 西文字体改为 Times 系(TeX Gyre Termes)/ Helvetica 系: 与国赛模板的西文字体一致,
+% 且数字更窄, 三线表放大字号后仍能落在版心内(TeX Live 与 Overleaf 均自带, 无需配置)
+
+% 图片搜索路径: 见下方 graphicx 之后(必须在 graphicx 之后设置才生效)
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{bm}
+\usepackage{booktabs,array,tabularx,longtable,multirow}
+\usepackage{graphicx,float,caption,subcaption}
+
+% 图片搜索路径(必须在 graphicx 之后设置, 否则 \graphicspath 未定义会报错失效):
+% 既支持图片与 main.tex 同目录, 也支持统一放在 figures\ 子目录
+\graphicspath{{figures/}{./}}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{url}
+\usepackage{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\hypersetup{hidelinks}
+\usepackage{cleveref}
+
+\definecolor{cumcmblue}{HTML}{1F4E79}
+\definecolor{cumcmgray}{HTML}{F2F4F7}
+\definecolor{codegreen}{HTML}{2E6B4E}
+
+\setlength{\parindent}{2em}
+\setlist{leftmargin=2em,labelsep=0.6em,itemsep=0.25em,topsep=0.4em,parsep=0pt}
+\captionsetup{font=small,labelsep=quad,skip=6pt}
+
+% 行内少量伸缩: 避免文字越出右边界, 也避免句末标点被挤到单独一行
+\setlength{\emergencystretch}{3em}
+% 三线表: 略微收紧列间距与行距, 以便在有限宽度内用更大的字号
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.15}
+
+% 圈码 ①—⑳ 等符号归入中文字体类(西文字体无此字形)
+\xeCJKDeclareCharClass{CJK}{"2460 -> "24FF, "3001 -> "303F, "FF01 -> "FF5E}
+
+% cleveref 中文名称
+\crefname{figure}{图}{图}
+\crefname{table}{表}{表}
+\crefname{section}{节}{节}
+\crefname{equation}{式}{式}
+\creflabelformat{equation}{(#2#1#3)}
+
+% 代码样式
+\lstset{
+  basicstyle=\ttfamily\scriptsize,
+  breaklines=true,
+  breakatwhitespace=false,
+  columns=flexible,
+  frame=single,
+  framexleftmargin=2pt,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{cumcmblue}\bfseries,
+  commentstyle=\color{codegreen},
+  stringstyle=\color{orange!70!black},
+  showstringspaces=false,
+  captionpos=b,  
+  extendedchars=true,
+  tabsize=2
+}
+\renewcommand{\lstlistingname}{代码}
+
+\title{微网与外部电网电力调控策略}
+\tihao{C}
+\baominghao{0000}
+\schoolname{}
+\membera{}
+\memberb{}
+\memberc{}
+\supervisor{}
+\yearinput{2026}
+\monthinput{9}
+\dayinput{12}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+
+微网需在满足小区负载的前提下利用储能与外部电网的峰谷价差降低购电费用。本文以逐 10 分钟功率平衡和储能 SOC 递推为内核，建立统一的线性规划模型族，对四个问题给出可执行的购电与充放电策略，并用多方法对照与灵敏度分析检验结论。
+
+\textbf{针对问题一}为单典型日确定性优化。以购电量为唯一成本变量、储能为跨时段套利工具，
+建立 144 时段的线性规划：功率平衡允许弃光、SOC单程 90\% 充放电效率，并添加日末电量相同
+（$E_1=E_{145}=6000$ kWh）。求得全局最优：全天购电量 \textbf{59\,482.67} kWh、购电费 \textbf{35\,126.95} 元，最优解呈\textbf{“低充高放”}
+结构（夜间低价充电、早晚高峰放电、光伏富余充电）；储能使费用较无储能（48\,052.05 元）
+下降 \textbf{26.9\%}。
+
+\textbf{针对问题二}为全年逐日“计划—结算”两阶段问题。0:00 计划不使用当日实测，按因果口径
+把\textbf{两阶段}分开建模：负载取最近4个\textbf{同类日}(周五、周六为一类，其余五天为一类)的逐时段均值；光伏取最近 4 个\textbf{连续日}
+的逐时段均值，\textbf{裕度}按报童问题取$q^*$为0.8。
+日内结算使用\textbf{因果实时平衡规则}
+（先使用计划充放电的可调空间、再使用储能存量，缺口按5倍电价紧急购电），全年总费用 \textbf{13\,678\,365} 元（计划 1\,319.4 万 $+$ 紧急 48.5 万）。
+
+
+\textbf{针对问题三}，为了解决光伏预报日内多次更新、计划购电与实际净负荷存在偏差的问题，建立\textbf{滚动线性规划模型}。模型在6:00、12:00、18:00利用最新预报调整计划；并执行时优先调节储能，剩余缺口再紧急购电。对安全分位与日末储电残差系数进行\textbf{双自由度扫参}后，得出最优值 \textbf{\(q_3=0.6333\)、\(v=0.4674\)}。全年全滚动方案总费用为\textbf{13,258,469元}，紧急购电量约\textbf{53,201 kWh}，表明滚动调整模型更具经济价值。
+
+\textbf{针对问题四}，为解决实时电价在日前未知的问题引入\textbf{因果电价预测}：将周五、六单独归为一类，以目标日前最近4个同类日、同一时段的已实现\textbf{电价等权均值}制定计划。问题四之二采用\textbf{日前计划与实时平衡}，安全分位取\textbf{0.8}，全年费用为 \textbf{14,398,021元}，紧急购电量约\textbf{83,130 kWh}。问题四之三滚动更新剩余时段计划，并沿用问题三的$q_3,v$的值，全年计划购电费、调整费和紧急购电费分别为\textbf{1,341.66万}、\textbf{25.31万}和\textbf{33.17万元}，总费用\textbf{14,001,386元}。
+
+\textbf{本文创新性在于}：一是对数据进行了有针对性的整理，刻画出小区负荷，电价的周内特征（周五周六显著偏低）以及光伏发电数据的\textbf{季节性特征}以及“\textbf{雨季凹陷}”，同时对光伏\textbf{预测数据的准确度与预测提前量}的关系进行了研究；二是构造了\textbf{衡量光伏发电功率季节性的模型}，定量判断是否需要为光伏发电功率的季节性特征单独建模；三是进行了\textbf{日末残差系数}的设置，并对关键参数进行了\textbf{扫参}以及\textbf{可视化分析}。
+
+\keywords{微网调度\enspace 线性规划\enspace 报童安全裕度\enspace 时域滚动调整\enspace 实时平衡控制}\enspace 偏差电价
+\end{abstract}
+
+
+\section{问题重述}
+
+\subsection{问题背景}
+
+微网是为解决光伏发电等分布式能源本地消纳而快速发展起来的小型发用电系统，由分布式光伏、
+储能设备与小区负载构成，并可通过联络线与外部电网（下称外网）交换电能。由于外网电价在
+不同时段存在显著差异，非孤岛式微网可在电价较低或分布式能源有剩余电量的时段为储能充电，
+在电价较高的时段释放电能，从而在满足小区负载的前提下降低购电费用。
+
+微网与外网调控的核心任务是：利用小区负载、光伏发电量与储能设备当前储电量等数据，
+尽可能精准地给出微网的购电量与储能设备的充放电量，使微网提供的电力既满足小区负载，
+又尽可能节省购电费用。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/fig_abstract.png}
+\caption{微网示意图}
+\label{fig:pvseason}
+\end{figure}
+
+\subsection{需要解决的问题}
+
+\begin{enumerate}[label=\textbf{问题\arabic*.}, leftmargin=4em, itemsep=2pt]
+\item \textbf{单典型日最优计划}：每天电价与小区负载相同、光伏发电功率有一天的预测数据，
+要求微网提供的电能不低于小区负载，且储能设备在 0:00 与 24:00 的储电量相同。
+建立每天 0:00 制定当天计划购电策略的数学模型，给出指定时段与全天的购电量、购电费，
+以及储能各时段的充放电量与 0:00、24:00 储电量。
+\item \textbf{全年逐日计划与紧急购电}：电价每天相同，但小区负载与光伏发电功率逐日变化；
+若微网提供的电能低于负载，需按交易时刻电价的 \textbf{5 倍}紧急购电，其余时段购电费按计划购电量计。
+在每天 0:00 制定当天的计划购电策略，覆盖 2025 年 2 月 1 日至 12 月 31 日。
+\item \textbf{滚动预报下的计划与调整}：每天 0:00、6:00、12:00、18:00 可获得未来 24 小时整点的
+光伏发电功率预报，可据 0:00 预报制定计划、并据其他时刻预报调整策略。计划购电量高于调整购电量的部分，
+违约电价为交易时刻电价的 \textbf{50\%}；调整购电量高于计划购电量的部分，超出部分电价为
+交易时刻电价的 \textbf{1.5 倍}；总购电费用包括计划购电费用、紧急购电费用与调整购电量相关费用\nobreak。
+要求建立模型并分析是否需要引入其他时刻的预报制定调整策略。
+\item \textbf{实时波动电价}：外网电价实际是实时波动的，需针对波动电价建立当天购电策略模型，
+并在波动电价下重新计算问题二与问题三。
+\end{enumerate}
+
+\subsection{数据与参数说明}
+
+\begin{table}[htbp]
+\centering
+\caption{原始数据与储能参数清单}
+\label{tab:data}
+\zihao{-5}
+\begin{tabularx}{\textwidth}{@{}p{1.3cm}p{2.6cm}p{7.8cm}X@{}}
+\toprule
+来源 & 内容 & 结构 & 单位与口径 \\
+\midrule
+附件1 & 电价、小区负载、光伏预测功率 & 单典型日 144 个 10 分钟时段（列头为区间结束时刻，如表头 \texttt{00:10} 表示 0:00--0:10） & 元/kWh；kW；kW \\
+附录1 & 储能参数 & 最大容量 12000 kWh；最大充放电功率 5000 kW；SOC 限幅 1200--10800 kWh；2025-01-01 0:00 储电量 6000 kWh；充放电效率 90\% & kWh、kW \\
+附件2 & 小区负载、光伏发电实际功率 & 2025-01-01 至 12-31，365 天 $\times$ 144 时段（两张工作表） & kW \\
+附件3 & 光伏发电预报 & 365天$\times$4个发布时刻（0:00/6:00/12:00/18:00）$\times$未来24个整点 & kW \\
+附件4 & 实时电价 & 2025-01-01 至 12-31，365 天 $\times$ 144 时段 & 元/kWh \\
+附件5 & 结果模板 & result1/2/3/4-2/4-3.xlsx & kWh、元 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+
+\section{问题分析}
+
+\subsection{机理分析}
+
+微网调度的物理内核可归结为三个关系与三层成本\cite{ieee_tou,thu_ess}。
+
+\textbf{（1）逐时段功率平衡}。任一 10 分钟时段 $t$ 内，微网供给必须不低于小区负载：
+\begin{equation}
+PV_t + P_t + D_t - C_t \ \ge\ L_t ,
+\label{eq:balance_general}
+\end{equation}
+其中 $P_t$ 为向外部电网购电量，$C_t,D_t$ 分别为储能充电量与放电量，$PV_t$ 为光伏发电量，$L_t$ 为负载电量。
+取“$\ge$”而非“$=$”是因为实测数据中存在光伏富余功率超过储能最大充电功率（5000 kW，即
+每时段 833.33 kWh）的情形，此时必须允许\textbf{弃光}，否则模型无可行解（该现象可出现于
+天气晴好且负载较低的日期）。
+
+\textbf{（2）储能荷电状态（SOC）递推}。设储电量 $E_t$（kWh），充放电效率按单程 90\% 计：
+\begin{equation}
+E_{t+1} = E_t + \eta_c C_t - \frac{D_t}{\eta_d}, \qquad \eta_c=\eta_d=0.9 ,
+\label{eq:soc}
+\end{equation}
+即充电 1 kWh 存入 0.9 kWh、放出 1 kWh 消耗 $1/0.9$ kWh 储电量，往返效率 81\%。
+
+\textbf{（3）物理边界}。
+\begin{equation}
+1200 \le E_t \le 10800,\quad 0\le C_t \le \bar C,\quad 0\le D_t \le \bar D,\quad \bar C=\bar D=5000\times\frac{10}{60}=833.33 .
+\label{eq:bounds}
+\end{equation}
+
+\textbf{（4）三层成本结构}：①正常购电按交易时刻电价（问题一、二、三中为附件1 固定电价曲线，
+问题四中为附件4 实时电价）；②实际供电低于负载的缺口按 \textbf{5 倍}电价紧急购电（偏差电量惩罚结算机制见文献\cite{cn111260354}）；
+③问题三中计划量与调整量的偏差按 \textbf{0.5 倍}（计划超出、退费 50\%）与
+\textbf{1.5 倍}（调整超出）分段计价。
+
+\textbf{}\subsection{四问的信息结构与决策结构差异}
+
+四问的物理模型相同，差别在于\textbf{计划时可获得的信息}与\textbf{结算时的计价规则}，见\cref{tab:info}。
+
+\begin{table}[htbp]
+\centering
+\caption{四问的信息集与结算规则对比}
+\label{tab:info}
+\zihao{-5}
+\begin{tabularx}{\textwidth}{@{}p{0.8cm}p{2.0cm}p{4.4cm}p{3.4cm}X@{}}
+\toprule
+问题 & 电价口径 & 0:00 计划的信息集 & 计划/调整/紧急计价 & 求解窗口 \\
+\midrule
+一 & 附件1 固定 & 附件1 负载与光伏预测（整日已知） & 计划购电价 & 单日 144 时段 \\
+二 & 附件1 固定 & 用历史实测构造预测（\textbf{不得使用当日实测}） & 计划购电 + 缺口 5 倍 & 2025.2.1--12.31（334 天） \\
+三 & 附件1 固定 & 0:00 发布的光伏预报 + 历史负载（6/12/18 另有新预报可用） & 计划 + 调整（0.5/1.5）+ 缺口 5 倍 & 同上（0:00 计划 $+$ 按需在某一预报时刻调整一次） \\
+四 & 附件4 波动 & 同问题三（光伏预报 + 历史负载），电价已知 & 同问题二、三 & 同上 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+所有问题全都遵循如\cref{fig:roate}所示的“信息-决策-结算”闭环技术路线。
+
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.62\textwidth]{figures/fig_process.png}
+\caption{技术路线：“信息-决策-结算”闭环示意图}
+\label{fig:roate}
+\end{figure}
+
+
+
+
+\section{数据探索与规律发现}
+
+本章把可观察到的数据规律逐一列出，并逐条给出建模思路（具体建模见后续章节）。
+
+\subsection{数据总览与处理}
+
+
+统一时间轴为 $(date,slot)$：日期取 2025-01-01 至 12-31 共 365 天，$slot=1,\dots,144$
+对应区间 $[(slot-1)\times10,\,slot\times10)$ 分钟。功率（kW）与电量（kWh）的换算是
+$1\ \text{kWh}=\text{kW}\times\frac{10}{60}\ \text{h}$。附件3 的预报口径经实测校验为
+“发布时刻后第 $k$ 个整点的功率点”，
+故用\textbf{整点功率点 + 线性插值}细化到 10 分钟。
+
+\subsection{规律一：周内负荷规律（周五、周六显著偏低）}
+
+按星期统计日均用电量：如\cref{fig:daily_load}所示，周五周六曲线明显低于其余五天曲线，数据证实：周一至周四与周日均为 123.9--124.9 MWh/日，而周五 78.3 MWh、
+周六 78.4 MWh，比其他五天低 36.8\%。该规律在 12 个月中全部成立，
+是“昨日外推”预测的最大误差来源：若用周四实测预测周五，负荷被系统性高估约 46\%。
+
+建模思路：将每周七天分作两类，采用分类建模的方式提高模型准确度。
+
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{figures/fig_weekday_curves.png}
+  \caption{日平均负荷曲线图}
+  \label{fig:daily_load}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{figures/fig_weekday_price.png}
+  \caption{日平均电价曲线图}
+  \label{fig:daily_price}
+\end{subfigure}
+\caption{周内负荷与电价规律}
+\end{figure}
+\subsection{规律二：周内电价规律（周五、周六显著偏低）}
+
+附件4 按星期统计日均电价，实时电价同样呈现周内规律：如\cref{fig:daily_price}所示，周五周六曲线明显低于其余五日曲线，白天不同时段间有较大价格差。数据证实：周五 0.6290、周六 0.6298 元/kWh，比其他五天（0.8191--0.8238）低 23.3\%。
+
+建模思路：将每周七天分成两类，采用分类建模，同时尽量使得周四净充电低，周五净充电高。
+
+
+
+\subsection{规律三：光伏季节特征（强季节 + 雨季凹陷）}
+
+\cref{fig:yearpv}展示了一年每天任意时段光伏发电的规律，可以看出整体呈现中午高早晚低，夏天高冬天低的规律。
+
+数据证实；月度日均光伏电量由 12 月的 36.3 MWh 上升到 8 月的 70.0 MWh，最高/最低 $=1.93$ 倍；
+年周期正弦拟合 $E=A+B\sin[2\pi(d-\varphi)/365]$ 得 $R^2=0.754$、振幅 14.2 MWh
+（年均值的 25.6\%）、峰值日约 7 月 1 日；数据代理的“有效日照时长”冬季 10.0 h/日、
+夏季 12.9 h/日，与日光伏电量相关系数 0.855；四季日曲线形态（日出日落时刻与正午峰值高度）
+差异明显。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.6\textwidth]{figures/fig_pv_heatmap.png}
+\caption{年光伏发电功率热力图}
+\label{fig:yearpv}
+\end{figure}
+
+此外，\cref{fig:yearpv}在雨季（6月前后）光伏发电功率较夏季其余时间偏低，这说明\textbf{6 月出现“雨季凹陷”}，数据表明六月光伏发电量56.9 MWh，低于 5 月的 67.4 MWh与 7 月的 65.4 MWh），
+说明季节特征由天文因素与气候因素叠加。
+
+建模思路：可以在基值的基础上叠加“季节性权重因子”来展示季节对光伏发电功率建模的影响。
+
+
+
+
+\subsection{规律六：预报误差随提前期增长}
+统计附件3中的光伏预测数据，结果如\cref{fig:pverr}所示，光伏预测误差随着预测提前期的增大而增大，蓝色阴影为大部分预测（10\%-90\%）的范围，蓝色实线表示了预测均值曲线，灰色条带为不用预测，仅用之前数据外推所推得出的误差结果范围。可以看出，预测提前期超过13小时，误差结果将高于历史数据外推结果，即超过13小时的预测数据不具备太多参考价值。
+
+建模思路：采用滚动时域调整，将预测数据与历史数据同时考量，同时采用最新的预测数据以减小模型误差。
+
+
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.6\textwidth]{figures/fig_pv_error_lead.png}
+\caption{光伏预报误差与预测提前期关系图}
+\label{fig:pverr}
+\end{figure}
+
+
+\section{模型假设与符号说明}
+\label{sec:assume}
+
+\subsection{模型假设}
+
+\begin{enumerate}[label=\textbf{假设\arabic*.}, leftmargin=4.2em, itemsep=2pt]
+\item 各时段附件给出的功率（kW）为该 10 分钟区间的平均功率，故区间电量（kWh）$=$ 功率 $\times \frac{10}{60}$；
+\item 光伏发电优先本地消纳，富余功率可用于储能充电；当富余功率超过储能最大充电功率时允许弃光；
+\item 储能充放电效率取\textbf{单程 90\%}（充电存入 90\%、放电放出 90\%，往返 81\%），且同一时段不会同时充放电；
+\item 微网与外网的联络线购电能力不受限（无功率上限），但供电不得低于小区负载，缺口须以 5 倍电价紧急购电；
+\item 问题二中 0:00 制定计划时无法获得当日实测负载与光伏，只能利用历史数据构造预测；
+计划量报出后不可更改；
+\item 问题三中 0:00 计划依据 历史数据以及0:00 发布的光伏预报，6:00/12:00/18:00 的调整仅作用于其后时段并继承当前储电量；
+\item 问题四中 0:00 无法获知当日实际实时电价，
+故用历史电价预测当日各时段电价；
+预测电价只用于制定与调整购电计划，全部费用一律按附件4 实际发生的实时电价结算；
+\item 日末储电量以“次日平均电价 $\times$ 放电效率”作为残值计入当日目标函数（滚动时域的标准做法，避免每日耗尽储能的短视行为）；
+\item 忽略线路损耗、储能自放电与设备老化，各时段参数在日内不变。
+\end{enumerate}
+
+
+\subsection{符号说明}
+
+\cref{tab:symbols}展示了主要符号及其含义。
+\begin{table}[htbp]
+\centering
+\caption{主要符号}
+\label{tab:symbols}
+\zihao{-5}
+\begin{tabular}{@{}clcl@{}}
+\toprule
+符号 & 含义 & 符号 & 含义 \\
+\midrule
+$t$ & 时段序号，$t=1,\dots,144$ & $C_t,D_t$ & 时段 $t$ 的充电量、放电量（kWh）\\
+$L_t$ & 时段 $t$ 小区负载电量（kWh） & $E_t$ & 时段 $t$ 起始储电量（kWh）\\
+$PV_t$ & 时段 $t$ 光伏发电量（kWh） & $E_0,E_{145}$ & 0:00、24:00 储电量（kWh）\\
+$P_t$ & 时段 $t$ 计划购电量（kWh） & $\eta_c,\eta_d$ & 充、放电效率，均取 0.9\\
+$p_t$ & 时段 $t$ 电价（元/kWh） & $v$ & 日末储电量残值系数（元/kWh）\\
+$q$ & 报童安全裕度的分位水平 & $b_t$ & 时段 $t$ 的安全裕度（kWh）\\
+$\hat L_t,\hat{PV}_t$ & 负载、光伏的预测（基值） & $S_t,X_t$ & 计划超出量、调整超出量（kWh）\\
+$\bar C,\bar D$ & 充放电功率上限折合 833.33 kWh & $E_t^{\text{急}}$ & 时段 $t$ 紧急购电量（kWh）\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+
+\section{问题一：单典型日确定性最优计划模型}
+\label{sec:q1}
+
+\subsection{模型建立}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{figures/fig_q1_flow.png}
+    \caption{问题一的流程图}
+    \label{fig:q1_flow}
+\end{figure}
+
+问题一中，典型日（附件1）的电价、小区负载与光伏发电预测在 0:00 均已知，无预测误差，也无日内修正；
+这里“典型日”指附件1 给出的代表性单日曲线，不含随机因素。问题还要求 0:00 与 24:00 的储电量相同，
+故该问的计划模型为
+\begin{equation}
+\min_{P,C,D,E}\ \sum_{t=1}^{144}p_t^{\text{附1}}P_t
+\label{eq:q1obj}
+\end{equation}
+\begin{align}
+\text{s.t.}\quad
+& PV_t^{\text{附1}}+P_t+D_t-C_t\ \ge\ L_t^{\text{附1}}, && t=1,\dots,144 \label{eq:q1bal}\\
+& E_{t+1}=E_t+\eta_cC_t-\frac{D_t}{\eta_d},\qquad 1200\le E_t\le10800, && t=1,\dots,145 \label{eq:q1soc}\\
+& 0\le P_t,\qquad 0\le C_t,D_t\le\bar C, && t=1,\dots,144 \label{eq:q1cap}\\
+& E_1=E_{145}=6000\ \text{kWh}. \label{eq:q1end}
+\end{align}
+目标函数只含购电费，不含日末储电量残值项；日末储电量改由端点等式 \eqref{eq:q1end} 约束，
+其含义是：典型日为独立调度日，储能起点与终点一致，既不向次日转移电量，也不透支次日储能。
+该模型为\textbf{标准线性规划}，共 577 个变量、289 条约束，用 HiGHS 求解约 9 ms；
+最优解的功率平衡残差最大为 $1.1\times10^{-13}$ kWh，储电量（SOC）全程位于 $[1200,10800]$ kWh
+且触及上下限，无同时充放电时段，说明解在物理上完全可行。
+
+\subsection{模型求解}
+
+表 \ref{tab:q1a}、\ref{tab:q1b} 分别给出典型日的购电量与充放电量（表 1、表 2 格式）。其中各 4 小时块的"充电量/放电量"为该块内 10 分钟时段的累计值。
+
+\begin{table}[htbp]
+\centering
+\caption{问题一：指定时段的购电量及全天购电量与购电费}
+\label{tab:q1a}
+\zihao{-5}
+\begin{tabular}{@{}lrlrlr@{}}
+\toprule
+时间段 & 购电量(kWh) & 时间段 & 购电量(kWh) & 时间段 & 购电量(kWh) \\
+\midrule
+10:00--10:10 & 0.00 & 12:00--12:10 & 480.41 & 14:00--14:10 & 0.00 \\
+16:00--16:10 & 445.43 & 18:00--18:10 & 531.89 & 20:00--20:10 & 0.00 \\
+\midrule
+\multicolumn{2}{l}{\textbf{全天购电量}} & \multicolumn{4}{l}{\textbf{59\,482.67 kWh}} \\
+\multicolumn{2}{l}{\textbf{全天购电费}} & \multicolumn{4}{l}{\textbf{35\,126.95 元}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{问题一：储能设备分时段充放电量与 0:00、24:00 储电量}
+\label{tab:q1b}
+\zihao{-5}
+\begin{tabular}{@{}lrrlrr@{}}
+\toprule
+时间段 & 充电量(kWh) & 放电量(kWh) & 时间段 & 充电量(kWh) & 放电量(kWh) \\
+\midrule
+0:00--4:00 & 4500.00 & 0.00 & 4:00--8:00 & 833.33 & 6365.84 \\
+8:00--12:00 & 4787.96 & 1703.00 & 12:00--16:00 & 5286.04 & 91.10 \\
+16:00--20:00 & 0.00 & 5780.13 & 20:00--24:00 & 5333.33 & 2859.87 \\
+\midrule
+0:00 储电量 & \multicolumn{2}{r}{6000.00 kWh} & 24:00 储电量 & \multicolumn{2}{r}{6000.00 kWh} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+图 \ref{fig:q1} 按自上而下的三个面板给出该典型日的逐 10 分钟调度：(a) 电价曲线；(b) 由负载、光伏与购电构成的功率平衡，其中光伏高于负载的区间（光伏富余）以浅绿标出；(c) 储能充放电功率（充电为负、放电为正，对应左轴）与储电量轨迹
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.86\textwidth]{fig_q1_schedule.png}
+\caption{问题一典型日最优调度：电价、功率平衡、储能充放电与储电量}
+\label{fig:q1}
+\end{figure}
+
+\subsection{结果分析}
+
+最优策略呈现清晰的"低充高放"结构（\cref{fig:q1}、\cref{tab:q1b}），其经济含义是储能进行跨时段套利：储能经充、放两道效率损耗后的往返效率为 $\eta_c\eta_d=0.81$，故以低价 $p$ 充入的电须以 $p/0.81$ 放出才不亏损。取夜间充电价 $0.432$ 元/kWh，则放电边际成本
+\begin{equation}
+0.432/0.81\approx 0.533\ \text{元/kWh},\label{eq:q1margin}
+\end{equation}
+低于早高峰 $0.671$ 元/kWh 与晚高峰 $1.134$ 元/kWh，套利有正收益；光伏富余为免费电源，优先用于充电。按时间顺序：
+
+\begin{enumerate}[label=(\arabic*), leftmargin=2.2em, itemsep=1pt]
+\item \textbf{0:00--4:00 夜间低谷充电}（电价均值 0.432 元/kWh）：充电 4500 kWh，SOC 由 6000 抬升至约 10\,050 kWh；
+\item \textbf{4:00--8:00 早高峰放电}（0.671 元/kWh）：放电 6365.84 kWh 覆盖负载高峰，其等效成本 0.533 元/kWh 低于直接购电；因块内局部时段仍有光伏富余，同时含 833.33 kWh 充电；
+\item \textbf{8:00--16:00 光伏充电}：光伏升至峰值并覆盖负载，富余功率共充电 10\,074 kWh；午后 SOC 达到 10\,800 kWh 上限后，多余光伏弃光；
+\item \textbf{16:00--20:00 晚高峰放电}（1.134 元/kWh）：放电 5780.13 kWh，是全天收益最高的动作；
+\item \textbf{20:00--24:00 低价回充并归位}：充电 5333.33 kWh 并放电 2859.87 kWh 覆盖夜间负载，24:00 储电量恰好回到 6000 kWh，满足端点约束。
+\end{enumerate}
+
+\subsection{方法对照：利用储能与无储能的算法}
+
+为量化储能贡献，表 \ref{tab:q1cmp} 给出两个对照。无储能将储能容量置零，缺口均按当时电价购买，是评估储能价值的参照；相较 LP，储能使典型日购电费下降 26.9\%（12\,925 元）。
+
+\begin{table}[htbp]
+\centering
+\caption{问题一两种方法的对照（典型日购电费）}
+\label{tab:q1cmp}
+\zihao{-5}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+方法 & 购电费(元) & 相对 LP & 说明 \\
+\midrule
+\textbf{线性规划（采用）} & \textbf{35\,126.95} & --- & 577 变量精确最优，9 ms \\
+无储能 & 48\,052.05 & +12\,925.10 (+36.8\%) & 缺额全部按当时电价购买 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+可见,储能价值在典型日达 26.9\%，为后续各问的储能与滚动策略价值提供基准。
+\section{问题二：全年逐日“计划—结算”两阶段模型}
+\label{sec:q2}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{figures/fig_q2_flow.png}
+    \caption{问题二的流程图}
+    \label{fig:q2_flow}
+\end{figure}
+
+
+\subsection{模型准备}
+
+问题二要求在每天 0:00 制定当天的计划购电策略。0:00 时当日实测数据尚未发生，
+故计划只能依据由历史数据(\textbf{当日之前的数据})构造的预测，当日实测仅用于结算。
+故本文按因果口径（第 $d$ 天只用 $d$ 之前的信息）建立逐时段预测模型。
+
+记第 $d$ 天第 $t$ 时段的小区负载与光伏分别为 $L_d(t)$、$PV_d(t)$，其差
+\begin{equation}
+N_d(t)=L_d(t)-PV_d(t)
+\label{eq:netload}
+\end{equation}
+称为\textbf{净需求}。
+
+\textbf{（1）负载预测：最近 4 个同类日均值}。由第 3 节规律一，周五、周六用电明显偏低，
+故按星期把日期分为\textbf{低类}（周五、周六）与\textbf{高类}（其余五天），
+目标日的负载取\textbf{最近 4 个同类日}逐时段实测值的平均：
+\begin{equation}
+\hat L_d(t)=\frac{1}{4}\sum_{\tau\in H_d}L_\tau(t),\qquad H_d=\text{最近 4 个同类日}.
+\label{eq:basisL}
+\end{equation}
+先分类再取均值，使两类日子不必相互牵就。作为对照，不分类的三种依据误差均明显更大
+（\cref{tab:fcacc}）：同星期几平均绝对误差 MAE 为 188.88\,kW、昨日外推 650.02\,kW、附件1 典型日 790.30\,kW。
+
+\begin{table}[htbp]
+\centering
+\caption{问题二 0:00 计划可用的预测依据精度对照}
+\label{tab:fcacc}
+\zihao{-5}
+\begin{tabular}{@{}llccc@{}}
+\toprule
+对象 & 预测依据 & MAE(平均绝对误差) & RMSE(均方根误差) & MAPE(日总量) \\
+\midrule
+\multirow{4}{*}{负载}
+& \textbf{最近 4 个同类日均值（采用）} & \textbf{137.52} & \textbf{191.59} & \textbf{1.16\%} \\
+& 最近 4 个同星期几 & 188.88 & 262.06 & 2.93\% \\
+& 昨日外推 & 650.02 & 1128.39 & 14.00\% \\
+& 附件1 典型日曲线 & 790.30 & 1020.25 & 19.49\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{（2）光伏预测：最近 4 个连续日均值}。由第 3 节的季节规律，光伏发电量几乎不随星期变化，
+而由季节与天气共同决定。取\textbf{最近 4 个连续日}的逐时段实测均值：
+\begin{equation}
+\widehat{PV}_d(t)=\frac{1}{4}\sum_{\tau=d-4}^{d-1}\max\big(PV_\tau(t),\,0\big).
+\label{eq:basisPV}
+\end{equation}
+
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{fig_q2_pv_season.png}
+\caption{(a)日光伏发电量与季节曲线对比；(b)光伏 MAE 随季节曲线权重 $w$ 的变化}
+\label{fig:q2pvseason}
+\end{figure}
+
+为检验季节电平是否需要单独建模，构造如下对照。设 $S_d(t)$ 为逐时段谐波季节曲线，
+其系数由 $d$ 之前的历史样本按最小二乘拟合（每 14 天重拟合一次，保证因果）：
+\begin{equation}
+S_d(t)=\alpha_0(t)+\sum_{k=1}^{2}\Big[\alpha_k(t)\sin\frac{2\pi k\,\mathrm{doy}_d}{365.25}
++\beta_k(t)\cos\frac{2\pi k\,\mathrm{doy}_d}{365.25}\Big],
+\label{eq:pvseason}
+\end{equation}
+其中 $\mathrm{doy}_d$ 为目标日的年内序号。再把 $S_d(t)$ 以权重 $w$ 混入式 \eqref{eq:basisPV}：
+\begin{equation}
+\widehat{PV}^{\,w}_d(t)=w\,S_d(t)+(1-w)\,\widehat{PV}_d(t),\qquad 0\le w\le 1 .
+\label{eq:pvblend}
+\end{equation}
+在 2 月 1 日至 12 月 31 日上计算，光伏 MAE 随 $w$ 单调上升：$w=0$（即式 \eqref{eq:basisPV}）
+为 151.95\,kW，
+$w=0.5$ 为 176.30\,kW，$w=1$（纯季节曲线）为 240.85\,kW；
+问题二全年费用相应在 $w\ge0.2$ 后上升 $0.04\%\sim4.9\%$。
+\cref{fig:q2pvseason}(a) 亦显示，近 4 日均值与实际日光伏电量的相关系数为 0.965，
+季节曲线为 0.844，这是因为当取最近 4 个连续日，这 4 天已经处在当前季节，季节电平已经被带入；
+再显式加季节因子，等于把权重拉向更早、天气状况不同的日子。
+
+
+
+
+\textbf{（3）报童安全裕度}。计划购电量由 0:00 一次性下达，而实际净需求会因预测误差偏离预测值：
+计划偏低时缺口须以 5 倍电价紧急购电，计划偏高时多购电量仍按基准价支付却无法使用。故计划值应在预测值上
+预留裕度，以平衡两类损失。该权衡即\textbf{报童模型}（newsvendor problem）：卖方在需求未知时须一次性
+决定订货量，订多了积压、订少了缺货，使两类期望损失之和最小的订货量恰为需求分布的
+$c_u/(c_u+c_o)$ 分位数，其中 $c_u$、$c_o$ 分别为单位缺货与积压损失。定义净需求预测残差
+\begin{equation}
+e_d(t)=\big(L_d(t)-\hat L_d(t)\big)-\big(PV_d(t)-\widehat{PV}_d(t)\big),
+\label{eq:resid}
+\end{equation}
+计划净需求取预测值与裕度之和
+\begin{equation}
+\tilde N_d(t)=\hat L_d(t)-\widehat{PV}_d(t)+b_d(t),\qquad
+b_d(t)=\mathrm{Quantile}_{q}\big(\{e_\tau(t)\}_{\tau\in\text{近30天}}\big),
+\label{eq:buffer}
+\end{equation}
+裕度取近 30 天同时段残差的 $q$ 分位数。计划偏低时每 kWh 多付 $c_u=5p-p=4p$，计划偏高时 $c_o=p$，故
+\begin{equation}
+q^*=\frac{c_u}{c_u+c_o}=\frac{4p}{4p+p}=0.8 ,
+\label{eq:newsboy}
+\end{equation}
+即在不计日内调节时，计划净需求应取残差的 0.8 分位数。在 2025 年 1 月标定集上对分位水平做扫描，
+\begin{equation}
+\begin{aligned}
+&\mathrm{Cost}_{1\text{月}}(q=0.5/0.6/0.7/\textbf{0.8}/0.9)\\
+&=1\,297\,560\,/\,1\,256\,060\,/\,1\,231\,314\,/\,\bm{1\,227\,999}\,/\,1\,247\,357\ \text{元},
+\end{aligned}
+\label{eq:qtune}
+\end{equation}
+费用在 $q=0.8$ 处最低，与理论临界比一致，故取 $q^*=0.8$（裕度形式与分位水平的敏感性见第九节）。
+
+\subsection{模型建立}
+
+记每时段充放电上限（5000 kW 折合 10 分钟电量）$\bar C=833.33$ kWh、充放电单程效率
+$\eta_c=\eta_d=0.9$、储电量上下限 $\underline{E}=1200$、$\overline{E}=10800$ kWh。
+
+\textbf{（1）0:00 计划模型}。第 $d$ 天的计划由下列线性规划给出：
+\begin{equation}
+\min_{P,C,D,E}\ \sum_{t=1}^{144}p_tP_t
+\label{eq:q2obj}
+\end{equation}
+\begin{align}
+\text{s.t.}\quad
+& \widehat{PV}_d(t)+P_t+D_t-C_t\ \ge\ \hat L_d(t)+b_d(t), && t=1,\dots,144 \label{eq:q2bal}\\
+& E_{t+1}=E_t+\eta_cC_t-\frac{D_t}{\eta_d},\qquad \underline{E}\le E_t\le\overline{E}, && t=1,\dots,145 \label{eq:q2soc}\\
+& 0\le P_t,\qquad 0\le C_t,D_t\le\bar C, && t=1,\dots,144 \label{eq:q2cap}
+\end{align}
+其中目标函数只含购电费，不含日末储电量残值项；安全裕度 $b_d(t)$ 加在负载侧；
+储能端点不固定，$E_1$ 取前一日递推至 0:00 的储电量，$E_{145}$ 顺延为次日的 $E_1$，
+故各日按其当日电价独立求解、逐日串接。
+求解得到计划购电量 $P^0_t$、计划充放电量 $C^0_t,D^0_t$ 与计划储电量轨迹 $E^0_t$。
+
+\textbf{（2）日内结算模型：实时平衡控制}。计划报出后\textbf{购电量 $P^0_t$ 不再改变}
+（否则等于允许“事后修改计划”），但储能是微网内部可控设备，并且要求
+“微网提供的电能不可低于小区负载”，因此运行中必须用储能进行实时调整。
+这一过程可视为写成\textbf{逐时段因果控制规则}：时段 $t$ 的决策只使用当前时刻可获得的量
+(当前实测 $L_t,PV_t$、当前储电量 $E_t$ 与已确定的购电量 $P^0_t$)来优化储能的调整。
+
+问题二的决策时刻只有 0:00 一个：0:00 一次性输出计划 $(P^0,C^0,D^0)$ 与一条\textbf{储能响应规则}
+$\pi_t(\cdot)$，日内只按该规则计算，不再求解优化问题。式 \eqref{eq:clip}--\eqref{eq:socrec}
+中的量只依赖 $t$ 时刻已知的信息（当前实测 $L_t,PV_t$、当前储电量 $E_t$ 与已锁定的计划），
+因而不需要未来信息，也不需要在线调用求解器；规则的作用是把实际净需求与计划的偏差按
+“先动用计划充放电的可调空间、再动用储能存量、最后才紧急购电”的顺序消化。
+该规则与计划同时在 0:00 确定，因此 0:00 的决策是一对
+\textbf{“购电计划 $+$ 储能响应规则”}，日内不产生新的决策变量。
+
+控制规则为：
+
+\textbf{① 可行性裁剪}：把计划充放电量裁剪到当前状态可达范围
+\begin{equation}
+C^{o}_t=\text{min}\Big\{\text{max}(C^0_t,0),\ \bar C,\ \frac{\overline{E}-E_t}{\eta_c}\Big\},\qquad
+D^{o}_t=\text{min}\Big\{\text{max}(D^0_t,0),\ \bar C,\ \eta_d\big(E_t-\underline{E}+\eta_cC^{o}_t\big)\Big\}.
+\label{eq:clip}
+\end{equation}
+
+\textbf{② 计划口径缺口}：$\Delta_t=L_t-\big(PV_t+P^0_t+D^{o}_t-C^{o}_t\big)$。
+若 $\Delta_t>0$（实际比计划“更缺电”），先\textbf{少充}、再\textbf{多放}：
+\begin{align}
+C_t&=\text{max}\big(0,\ C^{o}_t-\Delta_t\big),\qquad
+\Delta'_t=\text{max}\big(0,\ \Delta_t-C^{o}_t\big),\label{eq:up1}\\
+D_t&=D^{o}_t+\text{min}\Big\{\Delta'_t,\ \bar C-D^{o}_t,\ \eta_d\big(E_t-\underline{E}+\eta_cC_t\big)-D^{o}_t\Big\},\notag\\
+E^{\text{急}}_t&=\text{max}\big(0,\ \Delta'_t-(D_t-D^{o}_t)\big).\label{eq:up2}
+\end{align}
+即\textbf{先动用计划充放电的可调空间，再动用储能存量}；仍覆盖不足的缺口
+$E^{\text{急}}_t$ 只能按 $5p_t$ 紧急购电。
+
+\textbf{③ 计划口径富余}：若 $\Delta_t<0$，先\textbf{少放}、再\textbf{多充}：
+\begin{align}
+D_t&=\text{max}\big(0,\ D^{o}_t+\Delta_t\big),\qquad
+\Delta''_t=\text{min}\big(0,\ \Delta_t+D^{o}_t\big),\label{eq:dn1}\\
+C_t&=C^{o}_t+\text{min}\Big\{-\Delta''_t,\ \bar C-C^{o}_t,\
+\frac{\overline{E}-E_t+D_t/\eta_d}{\eta_c}-C^{o}_t\Big\},\label{eq:dn2}
+\end{align}
+剩余富余 $\big(-\Delta''_t-(C_t-C^{o}_t)\big)$ 由\textbf{弃光}吸收（题面允许光伏未上网部分直接丢弃）。
+
+最后按
+\begin{equation}
+E_{t+1}=E_t+\eta_cC_t-\frac{D_t}{\eta_d}
+\label{eq:socrec}
+\end{equation}
+递推储电量。可证式 \eqref{eq:clip}--\eqref{eq:socrec} 自动满足
+$C_t,D_t\in[0,\bar C]$、$E_t\in[\underline E,\overline E]$ 与“不同时充放电”三项物理约束
+（数值实现中亦以断言逐时段校验），且\textbf{所有量均为 $t$ 时刻已知}，故该规则是
+\textbf{可实行的（online、因果）}。当日费用为
+\begin{equation}
+\text{Cost}_d=\sum_t p_tP^0_t+\sum_t 5p_tE^{\text{急}}_t ,
+\label{eq:q2cost}
+\end{equation}
+储电量链条 $E_{145}^{(d)}=E_1^{(d+1)}$ 逐日递推，1 月为预热期，结果自 2 月 1 日起输出。
+
+\textbf{（3）计划阶段与结算阶段的信息划分}。计划阶段只用历史信息求解式
+\eqref{eq:q2obj}--\eqref{eq:q2cap}；结算阶段只按式 \eqref{eq:clip}--\eqref{eq:socrec} 的规则执行，
+使用的信息集不同且不交叉。若把两者合并为一个“事后最优”模型（用当日实测重新优化储能），
+则 0:00 的决策将依赖未来信息，所得费用不可实行，只能作为下界参考。
+\cref{tab:q2exec} 给出同一计划下三种结算方式的全年费用：完全按计划表执行（僵硬执行）
+为 14\,536\,946 元；按本节规则实时平衡为 \textbf{13\,678\,365 元}，降低 5.9\%；
+事后最优再调度为 13\,652\,470 元（不可实行的下界），实时平衡与它相差 0.19\%。
+
+\begin{table}[htbp]
+\centering
+\caption{问题二：同一计划下三种结算方式的全年费用对照（2.1--12.31）}
+\label{tab:q2exec}
+\zihao{-5}
+\begin{tabular}{@{}llccc@{}}
+\toprule
+结算方式 & 是否可实行 & 计划购电费(元) & 紧急购电费(元) & 总费用(元) \\
+\midrule
+僵硬执行计划（无日内平衡） & 可实行 & 13\,325\,159 & 1\,211\,786 & 14\,536\,946 \\
+\textbf{实时平衡控制（采用）} & \textbf{可实行} & \textbf{13\,193\,679} & \textbf{484\,687} & \textbf{13\,678\,365} \\
+事后最优再调度（下界） & 否（需未来实测） & 13\,325\,025 & 327\,445 & 13\,652\,470 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{fig_q2_exec.png}
+\caption{同一 0:00 计划下三种结算方式的费用分解（左）
+与紧急购电量（右）}
+\label{fig:q2exec}
+\end{figure}
+
+\subsection{模型求解}
+
+\begin{table}[htbp]
+\centering
+\caption{问题二全年（2025-02-01 至 12-31，334 天）各计划依据的费用对照}
+\label{tab:q2cmp}
+\zihao{-5}
+\begin{tabularx}{\textwidth}{@{}Lccccc@{}}
+\toprule
+方法（0:00 计划依据） & 计划购电费 & 紧急购电费 & 总费用 & 紧急电量 & 相对采用 \\
+\midrule
+\textbf{同类日负荷 $+$ 近 4 日光伏，报童 $q=0.8$（采用）} & \textbf{13\,193\,679} & \textbf{484\,687} & \textbf{13\,678\,365} & \textbf{85\,605} & --- \\
+事后最优再调度（下界） & 13\,325\,025 & 327\,445 & 13\,652\,470 & 90\,734 & $-0.19\text{\%}$ \\
+两阶段随机规划 SAA & 12\,761\,907 & 1\,097\,171 & 13\,859\,078 & 189\,930 & $+1.3\text{\%}$ \\
+同星期几，报童 $q=0.8$ & 13\,320\,049 & 950\,025 & 14\,270\,073 & 159\,815 & $+4.3\text{\%}$ \\
+无裕度（点预测） & 12\,194\,979 & 2\,738\,151 & 14\,933\,130 & 466\,511 & $+9.2\text{\%}$ \\
+附件1 典型日曲线，报童 $q=0.8$ & 15\,204\,781 & 1\,973\,364 & 17\,178\,145 & 335\,283 & $+25.6\text{\%}$ \\
+无储能 & 17\,358\,608 & 874\,835 & 18\,233\,443 & 217\,646 & $+33.3\text{\%}$ \\
+昨日外推，报童 $q=0.8$ & 14\,079\,247 & 7\,439\,419 & 21\,518\,666 & 1\,410\,814 & $+57.3\text{\%}$ \\
+\bottomrule
+\end{tabularx}
+
+\vspace{2pt}
+{\footnotesize\raggedright
+注：费用单位为元，电量为 kWh。全部方法采用同一实时平衡控制结算。
+“事后最优再调度”需用当日实测，不可实行，仅作下界参考。
+“两阶段随机规划 SAA”用近 10 日实测情景构造。
+“无储能”一行的计划购电费为按计划购入量的费用，紧急购电费为其偏差部分按 5 倍电价结算。
+\par}
+\end{table}
+
+\cref{tab:q2cmp} 中各行的差异分别来自预测依据、安全裕度与储能，对应以下三点：
+
+\begin{enumerate}[label=(\arabic*), leftmargin=2.4em, itemsep=1pt]
+\item \textbf{预测依据}：把“昨日外推”换成“同类日负荷 $+$ 近 4 日光伏”，
+全年费用由 21\,518\,666 元降至 13\,678\,365 元（$-36.4\text{\%}$），
+紧急购电量由 1.41 GWh 降至 0.086 GWh；负载预测 MAE 由 650.02 降至 137.52\,kW，
+光伏 MAE 由 185.35 降至 151.95\,kW。
+\item \textbf{安全裕度}：取点预测（无裕度）时全年费用为 14\,933\,130 元，比采用方案高 9.2\%；
+两阶段随机规划为 13\,859\,078 元，比采用方案高 1.3\%。两者的差别在于，
+报童分位只需近 30 天残差的经验分位数即可确定，无需构造不确定性情景。
+\item \textbf{储能}：无储能时全年费用 18\,233\,443 元，配备储能使全年费用降至 13\,678\,365 元，
+差额为 4\,555\,078 元（25.0\%）；采用方案与事后最优下界（13\,652\,470 元）相差 0.19\%。
+\end{enumerate}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{fig_q2_annual.png}
+\caption{问题二全年表现：逐日购电总费用（左，虚线为日均值）、各月费用构成（中）、
+各月紧急购电量（右）}
+\label{fig:q2}
+\end{figure}
+
+图 \ref{fig:q2basis} 把表 \ref{tab:q2cmp} 的各行按全年总费用由低到高排列；各行采用相同的因果结算方式，
+蓝色为本文采用的方案。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{fig_q2_basis.png}
+\caption{计划依据、安全裕度与储能对全年费用的影响}
+\label{fig:q2basis}
+\end{figure}
+
+
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{fig_q2_balance.png}
+\caption{因果实时平衡控制过程}
+\label{fig:q2balance}
+\end{figure}
+
+图 \ref{fig:q2balance} 给出两个代表性日期的结算过程：上行对应 2025-09-05，实际净负荷低于计划，
+储能吸收富余并出现弃光；下行对应 2025-06-01，实际高于计划，储能兜底后仍出现紧急购电。
+
+\subsection{结果分析}
+
+\begin{table}[htbp]
+\centering
+\caption{问题二：指定日期关键时段计划购电量与全天购电量、购电费}
+\label{tab:q2t1}
+\zihao{-5}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+时间段 & 2025-03-20 & 2025-06-21 & 2025-09-23 & 2025-12-21 \\
+\midrule
+10:00--10:10 & 0.00 & 0.00 & 0.00 & 0.00 \\
+12:00--12:10 & 556.49 & 0.00 & 527.54 & 986.12 \\
+14:00--14:10 & 0.00 & 0.00 & 0.00 & 0.00 \\
+16:00--16:10 & 493.99 & 244.62 & 568.69 & 852.91 \\
+18:00--18:10 & 701.69 & 0.00 & 780.37 & 718.19 \\
+20:00--20:10 & 0.00 & 0.00 & 0.00 & 0.00 \\
+\midrule
+全天购电量 & 67\,395.87 & 35\,111.09 & 69\,591.71 & 98\,441.08 \\
+全天购电费 & 40\,800.15 & 21\,018.21 & 43\,450.80 & 63\,448.36 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{问题二：指定日期最终储能充放电量与 0:00、24:00 储电量}
+\label{tab:q2t2}
+\zihao{-5}
+\begin{tabular}{@{}lcccccccc@{}}
+\toprule
+\multirow{2}{*}{时间段} & \multicolumn{2}{c}{2025-03-20} & \multicolumn{2}{c}{2025-06-21} &
+\multicolumn{2}{c}{2025-09-23} & \multicolumn{2}{c}{2025-12-21} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+& 充电 & 放电 & 充电 & 放电 & 充电 & 放电 & 充电 & 放电 \\
+\midrule
+0:00--4:00 & 8402.96 & 35.42 & 596.63 & 47.61 & 8706.10 & 18.56 & 8678.05 & 32.59 \\
+4:00--8:00 & 1853.82 & 5552.55 & 795.95 & 1722.43 & 1613.75 & 5801.47 & 2083.21 & 1404.52 \\
+8:00--12:00 & 6130.16 & 2777.38 & 9123.66 & 0.00 & 5690.98 & 1896.62 & 5782.65 & 6954.30 \\
+12:00--16:00 & 4177.29 & 386.17 & 0.00 & 0.00 & 4026.68 & 522.06 & 6500.33 & 2222.19 \\
+16:00--20:00 & 203.50 & 5924.89 & 187.65 & 5334.40 & 209.18 & 5704.29 & 1.91 & 5723.90 \\
+20:00--24:00 & 651.00 & 2810.59 & 1143.72 & 2485.90 & 585.03 & 2991.03 & 546.93 & 2849.45 \\
+\midrule
+0:00 储电量 & \multicolumn{2}{c}{1873.57} & \multicolumn{2}{c}{3302.10} &
+\multicolumn{2}{c}{1691.89} & \multicolumn{2}{c}{1853.07} \\
+24:00 储电量 & \multicolumn{2}{c}{1720.43} & \multicolumn{2}{c}{3309.01} &
+\multicolumn{2}{c}{1624.85} & \multicolumn{2}{c}{1768.00} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{问题二：指定日期紧急购电时间段与购电量}
+\label{tab:q2t3}
+\zihao{-5}
+\begin{tabular}{@{}llll@{}}
+\toprule
+2025-03-20（合计 178.54） & 2025-06-21 & 2025-09-23（合计 89.17） & 2025-12-21 \\
+\midrule
+20:30--20:40\ 178.54 & \multicolumn{1}{c}{无紧急购电} & 20:20--20:40\ 34.38 &
+\multicolumn{1}{c}{无紧急购电} \\
+ & & 20:50--21:10\ 54.79 & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+四个指定日期的紧急购电情况为：6 月 21 日（周六）与 12 月 21 日均无紧急购电；
+3 月 20 日与 9 月 23 日的紧急购电量分别为 178.54 与 89.17 kWh，
+占当日购电量的 0.26\% 与 0.13\%。
+日末储电量在 1.6$\sim$3.3 MWh 之间（\cref{tab:q2t2}），全部位于允许区间 $[1.2,\,10.8]$ MWh 的下半部，
+未触及上限或下限。
+
+\section{问题三：滚动预报下的“计划—调整—紧急”模型}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.7\textwidth]{问题三new.drawio.png}
+\caption{问题三的流程图}
+\label{fig:q2basis}
+\end{figure}
+\subsection{模型基础}
+
+设日内信息发布时刻为 $\mathcal K=\{0,6,12,18\}$：0:00制定全天计划，随后仅利用新发布的
+光伏预报调整未执行时段，储能初值取当前实际储电量。因此问题三是带
+非预期性约束的滚动时域优化，其核心是权衡预报信息收益与调整成本。
+
+对每条预报链，本文用目标日前20天同一链的实测误差作因果去偏。记第 $d$ 日、发布时刻 $k$
+对时段 $t$ 的原始光伏预测为 $\widehat{PV}^{\,k}_{d,t}$，则
+\begin{equation}
+\widetilde{PV}^{\,k}_{d,t}=\widehat{PV}^{\,k}_{d,t}
+-\frac{1}{|\mathcal H_d|}\sum_{\tau\in\mathcal H_d}
+\left(\widehat{PV}^{\,k}_{\tau,t}-PV_{\tau,t}\right),
+\quad \mathcal H_d=\{\max(1,d-20),\ldots,d-1\}.
+\label{eq:q3debias}
+\end{equation}
+窗口不含目标日及未来观测，保证历史回放可实施。
+
+\subsection{模型建立}
+
+记0:00计划量为 $P^0_t$，调整后量为 $P_t$，定义计划的“超出量”与“调整超出量”
+\begin{equation}
+S_t=\text{max}\{0,\ P^0_t-P_t\},\qquad X_t=\text{max}\{0,\ P_t-P^0_t\},
+\label{eq:SX}
+\end{equation}
+则逐时段计价（按题面规则）为
+\begin{equation}
+c_t=\underbrace{p_t\text{min}(P^0_t,P_t)}_{\text{共同部分按基准价}}
++\underbrace{0.5\,p_t S_t}_{\text{违约电价 50\%}}
++\underbrace{1.5\,p_t X_t}_{\text{超出部分 1.5 倍}} .
+\label{eq:q3price}
+\end{equation}
+由于 $S_t,X_t$ 只需满足 $P_t+S_t-X_t=P^0_t$ 且非负，式 \eqref{eq:q3price} 为分段线性函数，
+可用两个非负辅助变量精确线性化，故整个过程仍是线性规划。本题模型的主要优化部分见下。
+
+\textbf{（1）0:00计划与问题三独立标定的报童分位}：负荷预测和基础调度框架沿用第六节点模型；
+光伏侧使用经式 \eqref{eq:q3debias} 校准的预报，
+得到 $P^0_t,C^0_t,D^0_t$。
+由于问题三可在多个时点选择是否更新预报，其最优安全裕度与问题二不同，
+先用 1 月数据单独标定分位水平（判据为 1 月 7--31 日总费用）：
+\begin{equation}
+\begin{aligned}
+&\mathrm{Cost}_{1\text{月}}^{Q3}(q=0.5/\textbf{0.6}/0.7/0.8/0.9)\\
+&=1\,227\,706\,/\,\bm{1\,225\,850}\,/\,1\,235\,969\,/\,1\,255\,220\,/\,1\,302\,180\ \text{元},
+\end{aligned}
+\label{eq:qtune3}
+\end{equation}
+该次标定费用随 $q$ 先降后升，1月候选网格的最低点为 $q_3=0.6$。在此基础上，
+对 $(v,q_3)$ 作 $32\times28$ 个格点的全年费用扫描，选取
+$\bm{(v,q_3)=(0.4674,\ 0.6333)}$；该格点费用为1\,325.85万元，
+较 $(0,0.6)$ 低约4.68万元。1月标定值与全年扫描值的差异来自标定窗口不同。
+这一参数组合由同一全年样本择优，故其费用优势是样本内结果，不能视为样本外收益保证。
+
+\textbf{（2）逐段滚动调整}：把一天分成 $0$--$6$/$6$--$12$/$12$--$18$/$18$--$24$ 四段，
+每段只在获得新预报的发布时刻重解一次\textbf{剩余时段增量优化}。记
+$\mathcal T(t_0)=\{t:t\ge t_0\}$，并以当时的实际储电量 $E^{\mathrm{act}}_{t_0}$ 为初值：
+\begin{align}
+\text{min}\quad & \sum_{t\ge t_0}\Big(-0.5\,p_tS_t+1.5\,p_tX_t\Big)-vE_{145}
+\label{eq:adj_obj}\\
+\text{s.t.}\quad & P_t+D_t-C_t\ \ge\ \tilde N^{t_0}_t,\qquad
+\tilde N^{t_0}_t=\hat L^{t_0}_t-\widehat{PV}^{t_0}_t+b^{t_0}_t, && t\ge t_0 \label{eq:adj_bal}\\
+& E_{t+1}=E_t+\eta_cC_t-\frac{D_t}{\eta_d},\quad 1200\le E_t\le10800, && t\ge t_0 \label{eq:adj_soc}\\
+& E_{t_0}=E^{\mathrm{act}}_{t_0}, && \label{eq:adj_initial}\\
+& P_t+S_t-X_t=P^0_t,\quad S_t,X_t\ge0,\quad 0\le C_t,D_t\le\bar C,\quad P_t\ge0. && \label{eq:adj_link}
+\end{align}
+其中 $\widehat{PV}^{t_0}_t$ 为最新去偏预报；$v=0.4674$ 为日末储电量的单位残值系数，
+在0:00计划及各次调整中统一使用。偏差结算始终以 0:00 计划 $P^0_t$ 为基准，
+每段则以上一段实际执行后的 SOC 为起点，从而模型能够边执行边修正。
+
+\textbf{（3）调整时刻必须重设报童裕度}：调整之后重新面对的是“剩余时段的不确定性”，因此必须按新预报的口径重设置报童裕度
+\begin{equation}
+b^{t_0}_t=\mathrm{Quantile}_{q}\Big\{\big[(L-PV)-( \hat L^{t_0}-\widehat{PV}^{t_0})\big]_{\tau,t}\Big\}_{\tau\in\text{近30天}},
+\label{eq:adjbuffer}
+\end{equation}
+即按新预报口径计算历史残差分位，使滚动调整同步更新风险缓冲。
+
+\textbf{（4）日内执行}：与问题二一致，按 0:00/调整时定下的\textbf{平衡响应规则}
+（式 \eqref{eq:clip}--\eqref{eq:socrec}）执行：先动用计划充放电的可调空间、
+再动用储能存量，剩余缺口才按 $5p_t$ 紧急购电，富余则弃光。
+调整后当日总费用为
+\begin{equation}
+\text{Cost}_d=\sum_t p_tP^0_t+\sum_t\Big(-0.5p_tS_t+1.5p_tX_t\Big)+\sum_t 5p_tE^{\text{急}}_t .
+\label{eq:q3cost}
+\end{equation}
+
+
+\subsection{全滚动策略的费用结果}
+
+\begin{table}[htbp]
+\centering
+\caption{问题三不同调整方案的全年费用（单位：万元）}
+\label{tab:q3cmpbrief}
+\zihao{-5}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+调整时刻 & 全年总费用 & 紧急购电费 \\
+\midrule
+仅0:00计划 & 1426.01 & -- \\
+增加6:00调整 & 1390.37 & -- \\
+增加12:00调整 & 1356.91 & -- \\
+增加18:00调整 & 1352.77 & -- \\
+6:00、12:00调整 & 1346.58 & -- \\
+12:00、18:00调整 & 1336.56 & -- \\
+\textbf{6:00、12:00、18:00全滚动（采用）} & \textbf{1325.85} & \textbf{29.59} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\cref{tab:q3cmpbrief}表明，在相同参数口径下，全滚动方案的全年费用最低，
+为\textbf{13\,258\,469元}，其中计划购电费、调整费与紧急购电费分别约为
+12\,723\,524、239\,047 和 295\,897 元，紧急购电量约为 53\,201 kWh。
+相比仅使用0:00计划，全年节省约100.17万元。其他调整组合的费用总额由同一口径的
+策略回测得到；未提供相同口径的费用分项，故仅列总费用。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\textwidth]{fig_q3_rolling.pdf}
+\caption{问题三不同调整方案的全年总费用比较}
+\label{fig:q3}
+\end{figure}
+\subsection{结果分析}
+
+\begin{table}[htbp]
+\centering
+\caption{问题三：指定日期关键时段计划购电量与全天购电量、购电费（表 1 格式，kWh/元）}
+\label{tab:q3t1}
+\zihao{-5}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+时间段 & 2025-03-20 & 2025-06-21 & 2025-09-23 & 2025-12-21 \\
+\midrule
+10:00-10:10 & 0.00 & 0.00 & 0.00 & 0.00 \\
+12:00-12:10 & 525.89 & 0.00 & 351.76 & 983.64 \\
+14:00-14:10 & 0.00 & 0.00 & 0.00 & 0.00 \\
+16:00-16:10 & 664.97 & 189.42 & 582.12 & 870.07 \\
+18:00-18:10 & 698.46 & 0.00 & 788.53 & 713.64 \\
+20:00-20:10 & 0.00 & 0.00 & 0.00 & 0.00 \\
+\midrule
+全天购电量 & 69\,256.54 & 36\,296.46 & 69\,316.87 & 96\,019.52 \\
+全天购电费 & 42\,097.24 & 20\,517.82 & 43\,083.59 & 61\,259.08 \\
+调整后全天购电量 & 66\,338.97 & 35\,914.80 & 66\,409.81 & 95\,903.74 \\
+调整后购电相关费 & 42\,250.84 & 20\,338.79 & 42\,424.26 & 62\,089.51 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{问题三：指定日期最终储能充放电量与 0:00、24:00 储电量（表 2 格式，kWh）}
+\label{tab:q3t2}
+\zihao{-5}
+\begin{tabular}{@{}lcccccccc@{}}
+\toprule
+\multirow{2}{*}{时间段} & \multicolumn{2}{c}{2025-03-20} & \multicolumn{2}{c}{2025-06-21} & \multicolumn{2}{c}{2025-09-23} & \multicolumn{2}{c}{2025-12-21} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+ & 充电 & 放电 & 充电 & 放电 & 充电 & 放电 & 充电 & 放电 \\
+\midrule
+0:00--4:00 & 133.26 & 208.53 & 104.74 & 3760.92 & 203.48 & 151.73 & 86.04 & 141.29 \\
+4:00--8:00 & 83.20 & 6291.03 & 419.03 & 4838.06 & 224.13 & 6639.28 & 929.45 & 1509.97 \\
+8:00--12:00 & 3949.46 & 2315.78 & 10\,092.26 & 0.00 & 5412.15 & 1896.62 & 5239.03 & 7811.29 \\
+12:00--16:00 & 6398.23 & 372.51 & 0.00 & 0.00 & 5474.63 & 467.24 & 8133.72 & 2191.93 \\
+16:00--20:00 & 212.45 & 5335.82 & 68.17 & 5701.03 & 92.29 & 5890.54 & 14.16 & 5917.13 \\
+20:00--24:00 & 10\,715.90 & 2892.07 & 10\,045.62 & 2491.14 & 10\,562.50 & 2730.93 & 10\,666.67 & 2734.34 \\
+\midrule
+0:00 储电量 & \multicolumn{2}{c}{10\,800.00} & \multicolumn{2}{c}{10\,800.00} & \multicolumn{2}{c}{10\,669.60} & \multicolumn{2}{c}{10\,800.00} \\
+24:00 储电量 & \multicolumn{2}{c}{10\,792.43} & \multicolumn{2}{c}{10\,800.00} & \multicolumn{2}{c}{10\,690.38} & \multicolumn{2}{c}{10\,800.00} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{问题三：指定日期紧急购电时间段与购电量（表 3 格式，kWh）}
+\label{tab:q3t3}
+\zihao{-5}
+\begin{tabular}{@{}llll@{}}
+\toprule
+2025-03-20（合计 559.67） & 2025-06-21 & 2025-09-23（合计 419.00） & 2025-12-21（合计 307.78） \\
+\midrule
+9:00-10:00\ 461.60 & \multicolumn{1}{c}{无紧急购电} & 20:20-20:40\ 308.95 & 10:30-10:50\ 199.59 \\
+20:30-20:40\ 84.84 &  & 20:50-21:10\ 98.80 & 20:30-20:40\ 108.19 \\
+21:20-21:40\ 13.23 &  & 21:20-21:30\ 11.25 &  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\cref{fig:q3dates} 对比四个指定日期的0:00计划与最终调整量，并标出发生紧急购电的时段。
+各日调整方向和幅度不同，说明滚动决策随新预报及实际SOC变化；其中6月21日没有紧急购电。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.96\textwidth]{fig_q3_dates.pdf}
+\caption{问题三指定日期的原计划、调整后计划与紧急购电时段}
+\label{fig:q3dates}
+\end{figure}
+
+
+程序逐段读取当时可得预报、已实现功率和实际SOC，且因果去偏与残差分位只使用历史
+样本。功率平衡、SOC递推、容量与功率边界及跨日连续性均通过检验，
+排除了未来信息泄漏和阶段间SOC断裂。取 $(v,q_3)=(0.4674,0.6333)$ 后，
+全滚动费用为13\,258\,469元。问题四进一步考虑0:00未知的波动电价。
+
+
+\section{问题四：实时波动电价下的动态调度}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.7\textwidth]{问题四new.drawio.png}
+\caption{问题四的流程图}
+\label{fig:q2basis}
+\end{figure}
+
+\subsection{模型建立}
+
+问题四新增了\textbf{价格不确定性}：实时电价 $p^{\mathrm{act}}_{d,t}$ 在全年范围为
+0.0076--1.7936 元/kWh，而当日 0:00 尚无法获知其完整轨迹。因此，计划阶段只能根据
+此前已实现的电价预测 $\hat p_{d,t}$，实际费用则始终按附件4的实时电价结算。
+波动电价使储能既要利用低价时段充电、在高价时段放电，又要保留应对负荷与光伏预测偏差的能力；
+本问因而需要在购电成本与紧急购电风险之间取得平衡。功率平衡、SOC递推及充放电约束沿用前文模型。
+
+由附件4全年365天、每日144个时段的电价统计得到\cref{fig:q4pricepattern}。
+电价在6:00后明显上升，晚高峰达到较高水平；周五、周六日均价分别为
+0.6290、0.6298元/kWh，其余五天约为0.819--0.824元/kWh。
+日内峰谷影响储能充放电时机，而周五、周六与其他日期之间的稳定差异，为按\textbf{同类日}
+构造日前电价预测提供了依据。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.96\textwidth]{fig_q4_price_pattern.pdf}
+\caption{实时电价的日内峰谷与周周期：周五、周六整体处于低价水平}
+\label{fig:q4pricepattern}
+\end{figure}
+
+将周五、周六划为一类，其余五天划为另一类。记 $\mathcal H_d^{(4)}$ 为第 $d$ 日之前
+最近的至多4个同类日，则Q4-2和Q4-3在0:00采用统一的日前电价预测：
+\begin{equation}
+\hat p_{d,t}=
+\begin{cases}
+\displaystyle\frac{1}{|\mathcal H_d^{(4)}|}
+\sum_{j\in\mathcal H_d^{(4)}}p^{\mathrm{act}}_{j,t},
+& |\mathcal H_d^{(4)}|>0,\\[8pt]
+p^{\mathrm{typ}}_t,
+& |\mathcal H_d^{(4)}|=0,
+\end{cases}
+\label{eq:q4priceclass}
+\end{equation}
+其中 $p^{\mathrm{typ}}_t$ 为附件1给出的典型日电价。该方法只使用目标日之前
+同一时段的已实现价格；预热期若已有不足4个同类日，就对已有同类日取均值，
+仅在没有历史同类日时使用典型日电价。其样本外预测误差为
+MAE $=0.0370$ 元/kWh、RMSE $=0.0509$ 元/kWh。
+
+Q4-2以预测电价、最近4个同类日的负荷均值、最近4个连续日的光伏均值及
+$q=0.8$ 的净需求安全裕度制定0:00计划,并满足以下最优化函数：
+\begin{align}
+\min\quad & \sum_{t=1}^{144}\hat p_{d,t}P_t^0
+\label{eq:q42_obj}\\
+\text{s.t.}\quad
+& P_t^0+D_t-C_t\geq
+\hat L_{d,t}-\widehat{PV}_{d,t}+b_{d,t}^{\,0.8},
+&& 1\leq t\leq144
+\label{eq:q42_bal}\\
+& E_{t+1}=E_t+\eta_cC_t-\frac{D_t}{\eta_d},
+\quad 1200\leq E_t\leq10800,
+&& 1\leq t\leq144
+\label{eq:q42_soc}\\
+& E_1=E_d^{\mathrm{act}},
+\label{eq:q42_initial}\\
+& P_t^0\geq0,\qquad 0\leq C_t,D_t\leq\bar C.
+\label{eq:q42_bounds}
+\end{align}
+
+Q4-3以式\eqref{eq:q4priceclass}的日前电价预测和0:00原计划为基础，在6:00、12:00、18:00利用当时已实现的电价及最新源荷预报，以上一阶段实际储电量为初值，重新优化剩余时段计划。调整的偏差结算始终以0:00原计划为基准，净需求安全裕度取 \(q_3=0.6333\)，日末储电残值系数取 \(v=0.4674\)，并满足以下最优化函数及约束：
+\begin{align}
+\min\quad &
+\sum_{t\geq t_0}
+\left(-0.5\hat p_{d,t}^{\,t_0}S_t
++1.5\hat p_{d,t}^{\,t_0}X_t\right)
+-0.4674E_{145}
+\label{eq:q43_obj}\\
+\text{s.t.}\quad
+& P_t+D_t-C_t\geq\widetilde N_t^{\,t_0},
+\quad
+\widetilde N_t^{\,t_0}
+=\hat L_{d,t}^{\,t_0}
+-\widehat{PV}_{d,t}^{\,t_0}
++b_{d,t}^{\,t_0,\,0.6333},
+&& t\geq t_0
+\label{eq:q43_bal}\\
+& E_{t+1}=E_t+\eta_cC_t-\frac{D_t}{\eta_d},
+\quad 1200\leq E_t\leq10800,
+&& t\geq t_0
+\label{eq:q43_soc}\\
+& E_{t_0}=E_{t_0}^{\mathrm{act}},
+\label{eq:q43_initial}\\
+& P_t+S_t-X_t=P_t^0,\quad S_t,X_t\geq0,
+\quad 0\leq C_t,D_t\leq\bar C,\quad P_t\geq0.
+\label{eq:q43_link}
+\end{align}
+
+\subsection{联合风险诊断与滚动优化}
+
+负荷、光伏与价格误差可能在同一天共同出现。本文在样本外回测中保留同一历史日的三类误差轨迹
+\begin{equation}
+\bm e_d=\left[\bm e_d^{L},\bm e_d^{PV},\bm e_d^{p}\right],
+\label{eq:q4jointres}
+\end{equation}
+而不将三类误差随机拆散，以免同时出现高负荷、低光伏、高电价的情况。
+这里的联合轨迹用于风险诊断与同日回测；实际计划仍由可解释的线性规划求解，净需求风险通过
+历史净残差分位进入安全裕度，价格风险通过因果价格预测及实际价格结算进入目标函数。
+
+在 $k\in\{6{:}00,12{:}00,18{:}00\}$ 时刻，只使用截至 $k$ 已实现的价格误差构造修正量
+$\Delta_t^k$，按
+$\widehat p_t^{\,k}=\widehat p_t^{\,0}+0.7\Delta_t^k$（$t\ge k$）更新剩余时段价格；
+同时以实际执行后的 SOC 为初值，冻结过去决策，再用式
+\eqref{eq:adj_obj}--\eqref{eq:adj_link}重解剩余时域。该信息结构保证任何调整都不使用未来数据。
+
+\subsection{结果与对照}
+
+\begin{table}[htbp]
+\centering
+\caption{问题四：Q4-2 与Q4-3 的全年费用（2.1--12.31，单位：元）}
+\label{tab:q4cmp}
+\zihao{-5}
+\begin{tabular}{@{}llccc@{}}
+\toprule
+场景 & 方法 & 计划购电费 & 调整与紧急购电费（合计） & 总费用 \\
+\midrule
+Q4-2
+& \textbf{近4个同类日同一时段电价均值 + 纯历史源荷预测} & \textbf{13\,917\,237} & \textbf{480\,784} & \textbf{14\,398\,021} \\
+\midrule
+Q4-3
+& \textbf{全滚动（6/12/18）（采用）} & \textbf{13\,416\,609} & \textbf{584\,777} & \textbf{14\,001\,386} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\cref{fig:q42monthly}采用共享月份坐标的上下双柱状图：上图展示计划购电费的季节变化，下图展示
+紧急购电量的月度分布。全年计划购电费占总费用 96.66\%，紧急购电费占 3.34\%；其中 6--7 月
+紧急购电量合计 43.54 MWh，占全年约 52.4\%，明显高于其他月份。因此，夏季源荷预测误差与储能
+备用不足是 Q4-2 风险控制的重点，而计划购电费的季节高低本身并不能直接代表紧急购电风险。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{fig_q42_latest_monthly.pdf}
+\caption{Q4-2 月度计划购电费与紧急购电量：6--7 月紧急购电风险最集中}
+\label{fig:q42monthly}
+\end{figure}
+
+
+
+为展示滚动调整如何作用于实际执行，\cref{fig:q43stage}选择全年原计划与最终计划差异最大的
+2025-08-25。图中蓝色虚线与橙色实线分别为 0:00 原计划和最终执行计划，
+下图直接绘制 $\Delta P_t=P_t-P_t^0$：橙色柱为上调，蓝色柱为下调；竖线标示新信息到达时刻。
+该日累计下调 12\,341.57 kWh、上调 20.94 kWh，调整以削减原计划冗余为主。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{fig_q43_stage_plan.pdf}
+\caption{Q4-3 典型日原计划、调整后计划与逐时段调整量}
+\label{fig:q43stage}
+\end{figure}
+
+Q4-3 全滚动方案的计划购电费为 1\,341.66 万元，调整费与紧急购电费分别为
+25.31 万元和 33.17 万元，全年总费用为 1\,400.14 万元。\cref{fig:q43settle}
+将其与Q4-2的计划和紧急购电费用并列显示；两者不仅调整机制不同，源荷预报和
+安全裕度口径也不同，因此费用差额不能全部归因于日内滚动调整。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.90\textwidth]{fig_q43_settlement_composition.pdf}
+\caption{Q4-2与Q4-3年度费用构成比较}
+\label{fig:q43settle}
+\end{figure}
+
+
+\begin{table}[htbp]
+\centering
+\caption{问题四之三：指定日期关键时段计划购电量、全天购电量与费用（表 1 格式，kWh/元）}
+\label{tab:q4t1}
+\zihao{-5}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+时间段 & 2025-03-20 & 2025-06-21 & 2025-09-23 & 2025-12-21 \\
+\midrule
+10:00-10:10 & 0.00 & 0.00 & 0.00 & 0.00 \\
+12:00-12:10 & 525.89 & 0.00 & 351.76 & 983.64 \\
+14:00-14:10 & 0.00 & 0.00 & 0.00 & 0.00 \\
+16:00-16:10 & 664.97 & 189.42 & 582.12 & 870.07 \\
+18:00-18:10 & 698.46 & 480.51 & 0.00 & 713.64 \\
+20:00-20:10 & 39.95 & 0.00 & 0.00 & 0.00 \\
+\midrule
+全天购电量 & 69\,173.49 & 36\,454.79 & 69\,375.06 & 95\,861.19 \\
+全天购电费 & 43\,023.73 & 17\,986.34 & 45\,041.43 & 71\,800.73 \\
+调整后全天购电量 & 66\,331.35 & 36\,073.13 & 66\,504.76 & 95\,664.07 \\
+调整后购电相关费 & 42\,913.72 & 17\,851.05 & 44\,292.64 & 72\,906.70 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{问题四之三：指定日期最终储能充放电量与 0:00、24:00 储电量（表 2 格式，kWh）}
+\label{tab:q4t2}
+\zihao{-5}
+\begin{tabular}{@{}lcccccccc@{}}
+\toprule
+\multirow{2}{*}{时间段} & \multicolumn{2}{c}{2025-03-20} & \multicolumn{2}{c}{2025-06-21} & \multicolumn{2}{c}{2025-09-23} & \multicolumn{2}{c}{2025-12-21} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+ & 充电 & 放电 & 充电 & 放电 & 充电 & 放电 & 充电 & 放电 \\
+\midrule
+0:00--4:00 & 133.26 & 208.53 & 105.27 & 7499.84 & 337.73 & 129.13 & 86.04 & 141.29 \\
+4:00--8:00 & 64.93 & 6272.75 & 1294.94 & 1733.91 & 120.17 & 6639.28 & 119.65 & 854.04 \\
+8:00--12:00 & 3949.46 & 2319.25 & 9999.48 & 0.00 & 5347.84 & 1896.62 & 5239.03 & 7811.29 \\
+12:00--16:00 & 6357.39 & 331.68 & 0.00 & 0.00 & 5499.77 & 428.08 & 7612.75 & 1769.94 \\
+16:00--20:00 & 189.99 & 5912.49 & 0.00 & 5767.17 & 95.70 & 5647.84 & 14.16 & 5917.13 \\
+20:00--24:00 & 10\,711.67 & 2304.97 & 10\,195.45 & 2491.14 & 10\,616.52 & 2983.84 & 10\,666.67 & 2734.34 \\
+\midrule
+0:00 储电量 & \multicolumn{2}{c}{10\,800.00} & \multicolumn{2}{c}{10\,800.00} & \multicolumn{2}{c}{10\,617.22} & \multicolumn{2}{c}{10\,800.00} \\
+24:00 储电量 & \multicolumn{2}{c}{10\,788.62} & \multicolumn{2}{c}{10\,800.00} & \multicolumn{2}{c}{10\,738.99} & \multicolumn{2}{c}{10\,800.00} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{问题四之三：指定日期紧急购电时间段与购电量（表 3 格式，kWh）}
+\label{tab:q4t3}
+\zihao{-5}
+\begin{tabular}{@{}llll@{}}
+\toprule
+2025-03-20（合计 551.79） & 2025-06-21 & 2025-09-23（合计 439.76） & 2025-12-21（合计 274.97） \\
+\midrule
+9:00-10:00\ 458.12 & \multicolumn{1}{c}{无紧急购电} & 18:20-18:40\ 3.91 & 10:30-10:50\ 166.78 \\
+20:30-20:40\ 80.44 &  & 20:10-20:40\ 325.80 & 20:30-20:40\ 108.19 \\
+21:20-21:40\ 13.23 &  & 20:50-21:10\ 98.80 &  \\
+ &  & 21:20-21:30\ 11.25 &  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{模型检验与本问小结}
+
+Q4-2 的日前电价预测仅使用计划日前最近4个同类日同一时段的已实现价格，Q4-3 则在 6:00、12:00 和 18:00 仅更新尚未执行的时段，并以实际 SOC 衔接各阶段，从而避免未来信息泄漏。经独立复算，功率平衡、SOC 递推及上下界、充放电功率和跨日连续性均满足约束，费用复算结果与汇总值一致。Q4-2 的计划购电费、紧急购电费和总费用分别为 13,917,236.84 元、480,783.89 元和 14,398,020.73 元，紧急购电量为 83,129.83 kWh；Q4-3 全时刻滚动后的计划购电费、调整费和紧急购电费分别为 13,416,609.36 元、253,055.13 元和 331,721.58 元，总费用为 14,001,386.07 元，紧急购电量为60,685.77 kWh。因此，无日内更新信息时可采用 Q4-2 的历史预测方案，而能够获取分时预报时可采用 Q4-3 滚动优化；两者的费用差异还包含光伏预报、安全裕度及调整机制的差异，不宜解释为单一机制的收益。
+\section{灵敏度分析}
+
+
+
+\begin{enumerate}[label=(\arabic*), leftmargin=2.4em, itemsep=1pt]
+\item 第二问：结论对\textbf{报童分位偏低}
+（$q=0.55$ 时较最小值有 $+6.56\text{\%}$ 偏差）较敏感。报童分位$q$是本文第二问的决策变量，如\cref{fig:sensq}所示，随$q$增大总体费用呈现先减小再增大的规律，最低值时$q=0.77$。本问采用$q^*=0.80$是为了获得\textbf{较大的安全裕度}，且与$q=0.77$时所取得的最小值差距较小。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.6\textwidth]{figures/fig_sens_q.png}
+\caption{报童分位灵敏度分析曲线图}
+\label{fig:sensq}
+\end{figure}
+
+\item 第三问（包括问题四之三）：结论对报童分位$q_3$敏感，对日末残差系数$v$\textbf{格外敏感}，通过比较不同$v$以及$q_3$的不同取值进行扫参操作，结果如\cref{fig:sensv}所示。全年费用总体呈“山谷”状，在$v$轴方向上，图像呈现两端“平坦”，中间“凹陷”的特点；在$q_3$轴上，随$q_3$增大，全年费用先减小再增大。进一步获取了最优的参数搭配：$v=0.4674,q_3=0.6333$,此时全年总费用为1325.85万元，对比$v=0, q_3=0.60$ 计算结果1330.53 万元省 4.68 万元（−0.352\%）。值得注意，日末残差系数$v=0.4674$说明\textbf{要在24点前后合理安排电量采购}，使得模型最优，而不是在前一天或者后一天采购全部所需电量，这也与电价低谷在24点前后同时存在有关（电价详见\cref{fig:daily_price}）。
+
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}[b]{0.50\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{figures/fig_sens_v_3d.png}
+  \caption{日末残差系数$v$与报童分位$q_3$双自由度费用分析图}
+  \label{fig:sensv}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.50\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{figures/fig_sens_v2_3d.png}
+  \caption{分类日末残值系数$(v_F,v_o)$双自由度费用分析图}
+  \label{fig:sensv2}
+\end{subfigure}
+\caption{第三问多自由度扫参灵敏度分析曲面图}
+\end{figure}
+
+\item 第三问讨论：为检验单一$v$隐含的“日型同质”假设(将两类电价差异极大的日期类型：星期五、星期六以及其余五天这两类视作同一种类型，用同一个$v$的假设)，本文把日末残值系数拆成分类日末残差系数$(v_F,v_o)$,两类各在$[0,0.69]$扫32点、共1024次全年求解(g3固定0.6333)。如\cref{fig:sensv2}所示:二维最优$(0.4452,0.4674)$为13,258,171元，仅比单一$v$= 0.4674的13,258,469元低297元(0.0022\%)，低于求解器噪声0.043\%;分别改动两类的$v$时，总费用的变化恰好等于两次单独改动之和，两者之间没有额外的相互影响，最优$v$同落于$[0.445,0.467]$；跨过0.49台阶则分别升高3.89与7.36万元。故保持单一$v$更经济，工程上只需避免取到$v>0.49$即可避免较大误差。
+
+
+\section{模型评价与推广}
+
+\subsection{模型的优点}
+
+\begin{itemize}[leftmargin=2.2em, itemsep=2pt]
+\item \textbf{优点 1}：四问共用一套“逐 10 分钟功率平衡 + 储能 SOC 递推”的线性规划内核，口径一致，所有的解物理可行。
+\item \textbf{优点 2}：计划与结算分离，并用报童分位显式对冲不确定性，日内响应规则因果可实行、不依赖未来信息。
+\item \textbf{优点 3}：算法建立在在数据特征的基础上,并在灵敏度分析中进行不同的参数对比,证明了参数在实际取舍下的合理性与最优性
+\end{itemize}
+
+\subsection{模型的缺点}
+
+\begin{itemize}[leftmargin=2.2em, itemsep=2pt]
+\item \textbf{缺点 1}：预测精度依赖历史数据与预报质量，极端天气下安全裕度可能不足。
+\item \textbf{缺点 2}：数据依赖性强，泛化能力有待验证。
+\end{itemize}
+
+\subsection{模型的改进与推广}
+
+\begin{itemize}[leftmargin=2.2em, itemsep=2pt]
+\item \textbf{改进方向}：把当日已观测的负荷与光伏偏差回写去校正剩余时段预报，进一步压低紧急购电。
+\item \textbf{推广方向}：本文“规律挖掘 $\to$ 依据构造 $\to$ 精确求解 $\to$ 因果储能实时平衡 $\to$ 信息价值核算”的范式，
+可迁移到园区综合能源系统、数据中心“算电协同”、光储充一体化电站等同类问题。
+\end{itemize}
+
+
+\CumcmAIUsed{代码实现与调试、文献资料整理、图表绘制脚本编写与文字润色}
+
+
+\begin{thebibliography}{9}
+\bibitem{ieee_tou} Combinational Linear Programming Approach for Daily Optimal Operation of Customers with
+DG/ESS under TOU Pricing for Customer EMS Software Applications. IEEE, 2018.
+\bibitem{thu_ess} 电力现货市场下储能系统经济效益研究. 电力系统及其自动化学报, 2023.
+\bibitem{mpc} Two-time scale microgrid scheduling based on power fluctuation mitigation priority and
+model predictive control. Energy, 2025.
+\bibitem{cn102184475} 基于多时间尺度协调的微网经济运行优化调度方法. 中国专利 CN102184475B.
+\bibitem{cn111260354} 一种多时序多品种电力市场下的电费结算方法和相关装置. 中国专利 CN111260354B.
+\bibitem{cqut253} 混合特征筛选与分时Stacking的无地表辐照度光伏出力预测. 重庆理工大学学报(自然科学), 2024, 38(10): 253.
+\bibitem{cqut276} 考虑预测误差不确定性的源-荷-广义储低碳经济动态优化调度. 重庆理工大学学报(自然科学), 2024, 38(5): 276.
+\bibitem{newsboy} 报童模型与随机库存理论（Newsvendor model）: 服务水平 $=c_u/(c_u+c_o)$.
+\bibitem{vtpp} 电力市场环境下虚拟电厂两阶段能量经济优化调度. 中国储能网, 2023.
+\end{thebibliography}
+
+
+\appendix
+
+\section{程序与数据清单}
+
+\subsection{程序结构}
+
+全部计算由 40 余个 \textbf{Python} 脚本完成，可从原始附件复现论文与结果文件。
+提交材料按“\textbf{代码}”与“\textbf{文件}”两部分组织：
+\texttt{06\_提交材料/代码/Python/} 为本文全部脚本（含 \texttt{预测模型/}、\texttt{数据工程/}
+与 \texttt{早期口径存档/}），\texttt{06\_提交材料/文件/} 为论文工程、5 个结果文件与预测模型实验报告/图表。
+求解器为 \texttt{scipy.optimize.linprog}（HiGHS，对偶单纯形/内点法均可）；
+预测模型用到 \texttt{scikit-learn}（岭回归/堆叠）与 \texttt{LightGBM}（梯度提升）。
+只需设置 \texttt{PYTHONPATH} 指向数据工程与脚本目录，按下列顺序执行即可完整复现：
+
+\begin{lstlisting}[language=bash, caption={一键复现流程（Windows PowerShell）}]
+$env:PYTHONPATH="<工作目录>;<工作目录>\00_环境"
+python 03_数据工程/scripts/build_dataset.py      # 附件1-4 -> 统一时间轴数据集
+python 04_建模求解/scripts/fc_upgraded.py        # 升级预测模型(负荷/光伏/电价)
+python 04_建模求解/scripts/rebuild_A_final.py    # 求解四问, 写出 result1/2/3/4-2/4-3.xlsx
+python 04_建模求解/scripts/A_all_numbers.py      # 论文全部数字 -> data/A_all_numbers.json
+python 04_建模求解/scripts/extract_tables.py     # 论文表1/2/3 -> paper_tables.json
+python 04_建模求解/scripts/make_figs_final.py    # 论文插图
+python 04_建模求解/scripts/audit_results.py      # 独立审计: 重读结果文件逐项复算
+\end{lstlisting}
+
+各脚本功能如下：
+
+\begin{table}[htbp]
+\centering
+\caption{程序清单与功能}
+\label{tab:code}
+\zihao{-5}
+\begin{tabularx}{\textwidth}{@{}p{4.6cm}X@{}}
+\toprule
+脚本 & 功能 \\
+\midrule
+\texttt{engine.py} & 通用单日 LP 引擎：计划模式与调整模式、SOC 递推、功率平衡（允许弃光） \\
+\texttt{io\_results.py} & 结果写入：按附件5 模板逐单元格填充 result1/2/3/4-2/4-3.xlsx \\
+\texttt{fc\_upgraded.py} & \textbf{升级预测模型}：负荷“水平$\times$形状 + 分类凸组合”、光伏/电价因果岭回归堆叠 \\
+\texttt{fc\_features.py} / \texttt{fc\_ml.py} & 预测特征工程（时段/日历/滞后/滚动/附件3 预报）与 LightGBM 因果滚动重训 \\
+\texttt{A\_core.py} & \textbf{口径 A 核心}：0:00 计划 $+$ 报童裕度 $+$ 平衡响应规则 $+$ 调整时刻裕度重建 $+$ 天眼下界/无储能对照 \\
+\texttt{rebuild\_A\_final.py} & \textbf{正式重算}：构造升级预测并写出 5 个结果文件（result1--4-3） \\
+\texttt{A\_all\_numbers.py} & 论文全部数字：精度、四问主结果、调整方案对照、执行机制、灵敏度、预言机分解 \\
+\texttt{causal\_core.py} / \texttt{rebuild\_causal.py} & 因果口径核心与“原依据”版本的对照重算（用于口径对比） \\
+\texttt{q1.py} & 问题一求解、贪心与无储能对照、结果文件与图 \\
+\texttt{causal\_basis\_all.py} / \texttt{causal\_variants.py} & 方法对照（计划依据、分位、结算方式、滚动方案） \\
+\texttt{causal\_saa.py} / \texttt{plan\_saa.py} / \texttt{q2\_lstp\_final.py} & 两阶段随机规划（SAA/LP 情景规划）在因果口径下的失效验证 \\
+\texttt{noise\_decompose.py} & 残差季节偏置、重尾分布、预言机信息价值分解 \\
+\texttt{sensitivity\_causal.py} / \texttt{eta\_sens.py} / \texttt{buffer\_forms\_causal.py} & 灵敏度与裕度形式对照实验 \\
+\texttt{audit\_results.py} & \textbf{独立审计}：直接重读 5 个结果文件，复算平衡/SOC/限幅/费用 \\
+\texttt{solver\_robustness\_\allowbreak final.py} & 求解器稳健性：同一条管道分别用 HiGHS 对偶单纯形与内点法求解 \\
+\texttt{check\_paper\_tables.py} & 论文表格数值与结果文件的一致性校验 \\
+\texttt{extract\_tables.py} / \texttt{show\_paper\_tables.py} & 论文表 1/2/3 数据提取（与结果文件同源） \\
+\texttt{make\_figs\_final.py} / \texttt{make\_figs\_causal.py} / \texttt{make\_pattern\_figs.py} & 论文插图与规律证据图 \\
+\texttt{07\_预测模型实验/scripts/*} & 预测模型的完整实验（精度对照、端到端费用、多样化图表） \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{核心代码（LP 引擎、报童缓冲与实时平衡控制）}
+
+\begin{lstlisting}[language=Python, caption={单日 LP 引擎（节选：计划模式与调整模式的目标、约束装配）}]
+def solve_day(price, load, pv, soc0, soc_end=None, v=0.0, base_P=None, t0=0, method='highs'):
+    """price/load/pv: 长度 h 的数组(元/kWh, kWh/时段, kWh/时段); base_P: 调整模式下已锁定的计划量"""
+    h = len(price); adj = base_P is not None
+    nP, nC, nD, nE = h, h, h, h + 1
+    nS, nX = (h, h) if adj else (0, 0)
+    n = nP + nC + nD + nE + nS + nX
+    iP, iC, iD, iE, iS, iX = 0, h, 2*h, 3*h, 4*h, 4*h+h
+    c = np.zeros(n)
+    if not adj:
+        c[iP:iP+h] = price                 # 计划模式: min sum p*P - v*E_end
+    else:
+        c[iS:iS+h] = -0.5*price            # 调整模式: 下调退回 50%
+        c[iX:iX+h] = +1.5*price            #           上调按 1.5 倍
+    c[iE+h] = -v
+    Aub, bub = [], []
+    for t in range(h):                     # 功率平衡(允许弃 光): PV+P+D-C >= L
+        row = np.zeros(n); row[iP+t], row[iC+t], row[iD+t] = -1, 1, -1
+        Aub.append(row); bub.append(pv[t]-load[t])
+    Aeq, beq = [], []
+    for t in range(h):                     # SOC 递推: E[t+1]=E[t]+0.9C-D/0.9
+        row = np.zeros(n); row[iE+t], row[iE+t+1] = -1, 1
+        row[iC+t], row[iD+t] = -0.9, 1/0.9
+        Aeq.append(row); beq.append(0.0)
+    if adj:
+        for t in range(h):                 # P + S - X = 计划量
+            row = np.zeros(n); row[iP+t], row[iS+t], row[iX+t] = 1, 1, -1
+            Aeq.append(row); beq.append(base_P[t])
+    # 边界: 1200<=E<=10800, 0<=C,D<=833.33, P>=0, E[0]=soc0
+    ...
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={升级预测模型（负载：水平$\times$形状 + 分类凸组合；光伏/电价：因果岭回归堆叠），式 \eqref{eq:basisL}--\eqref{eq:basisPV}}]
+# ---------- (1) 负载: 水平×形状分解 + 周五六/其他分类凸组合 ----------
+SH = np.zeros((n, 144)); lv = np.zeros(n)
+for j in range(n):
+    hist = [q for q in range(j) if low[q] == low[j]]          # 同类日(周五六/其他)
+    A = L_act[hist[-6:]]
+    SH[j] = (A / np.maximum(A.sum(axis=1, keepdims=True), 1e-6)).mean(axis=0)   # 形状
+    lv[j] = L_act[hist[-4:]].sum(axis=1).mean()                                 # 水平
+M_shape = SH * lv[:, None]
+M_lvl = level_smooth(Lb, L_act, alpha=0.35)      # 递推水平平滑(昨日实际/预测比指数平滑)
+M_ef  = err_feedback(Lb, L_act, k=3, damp=0.35)  # 全局误差反馈
+CAND = [Lb, M_shape, M_lvl, M_ef]
+for cls in (False, True):                        # 1 月标定: 两类各自在凸组合网格上选权重
+    rows = [j for j in range(7, 31) if low[j] == cls]
+    w_best = min(SIMPLEX_GRID, key=lambda w: np.abs(sum(wi*C[k] for wi, k in zip(w, range(4)))[rows]
+                                                    - L_act[rows]).mean())
+    L_hat[low == cls] = sum(wi*C[k] for wi, k in zip(w_best, range(4)))[low == cls]
+# 结果: 周五六 0.3×水平×形状 + 0.7×递推水平; 其他五天 1.0×水平×形状
+
+# ---------- (2) 光伏/电价: 因果岭回归堆叠(每 14 天用 j<d0 的样本重训) ----------
+def causal_ridge_stack(cands, Y, alpha=1.0, retrain=14):
+    X = np.stack([np.stack(cands, -1), t_feat, low_feat, t_feat*low_feat], -1)  # 候选+时段+类别交互
+    out = np.zeros_like(Y)
+    for d0 in range(0, n, retrain):
+        tr = np.arange(0, d0); mdl = Ridge(alpha=alpha).fit(X[tr].reshape(-1, F), Y[tr].reshape(-1))
+        out[d0:d0+retrain] = mdl.predict(X[d0:d0+retrain].reshape(-1, F)).reshape(-1, 144)
+    return out
+PV_hat = causal_ridge_stack([Pb, err_feedback(Pb, PV_act, 2, 0.5), lgbm_pv, fc0], PV_act)  # MAE 136.8 kW
+P_hat  = causal_ridge_stack([prof, err_feedback(prof, RTP, 2, 0.5), lgbm_price], RTP)      # MAE 0.0367 元/kWh
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={报童安全裕度与实时平衡控制结算（问题二核心，式 \eqref{eq:buffer}、\eqref{eq:clip}--\eqref{eq:socrec}）}]
+# 1) 报童安全裕度: 近30天净残差的 q 分位 (q*=0.7, 1月标定: 见式(22))
+e_net = (L_act - L_hat) - (PV_act - PV_hat)          # 升级预测模型的净需求残差
+buf = np.quantile(e_net[max(0,i-30):i], 0.7, axis=0) if i >= 7 else np.zeros(144)
+
+# 2) 0:00 计划 LP -> 计划购电量 P0 与计划充放电量 C0,D0 (式(4)-(8))
+r0 = solve_day(price, L_hat[i] + buf, PV_hat[i], soc0, soc_end=None, v=v)
+
+# 3) 日内实时平衡控制: 只使用当前实测 L_t,PV_t 与当前储电量 soc (因果、可实行)
+for t in range(144):
+    c_ok = min(max(C0[t], 0), C_MAX, (SOC_MAX - soc) / ETA_C)          # ① 裁剪为物理可行
+    d_ok = min(max(D0[t], 0), C_MAX, ETA_D * max(0, soc - SOC_MIN + ETA_C * c_ok))
+    C[t], D[t] = c_ok, d_ok
+    gap = L[t] - (PV[t] + P0[t] + D[t] - C[t])
+    if gap > 0:                                                        # ② 缺额: 先减充, 再增放
+        cut = min(C[t], gap); C[t] -= cut; gap -= cut
+        extra = min(gap, C_MAX - D[t], ETA_D * max(0, soc - SOC_MIN + ETA_C * C[t]) - D[t])
+        D[t] += extra; gap -= extra
+    elif gap < 0:                                                      # ③ 富余: 先减放, 再增充
+        cut = min(D[t], -gap); D[t] -= cut; gap += cut
+        extra = min(-gap, C_MAX - C[t], (SOC_MAX - soc + D[t] / ETA_D) / ETA_C - C[t])
+        C[t] += extra; gap += extra
+    E_em[t] = max(0.0, gap)                                            # 兜不住的缺口 -> 5 倍紧急购电
+    soc += ETA_C * C[t] - D[t] / ETA_D                                 # SOC 递推, 逐时段校验
+\end{lstlisting}
+
+
+
+\subsection{结果文件与数据资产}
+
+\begin{table}[htbp]
+\centering
+\caption{交付文件清单}
+\label{tab:deliver}
+\zihao{-5}
+\begin{tabularx}{\textwidth}{@{}lLl@{}}
+\toprule
+文件 & 内容 & 规模 \\
+\midrule
+\texttt{result1.xlsx} & 问题一：144 时段计划购电量 + 6 段充放电量 + 0:00/24:00 储电量 & 2 表 \\
+\texttt{result2.xlsx} & 问题二：334 天计划购电量（含全天购电量/购电费）+ 充放电量 + 紧急购电量 & 3 表 \\
+\texttt{result3.xlsx} & 问题三：计划购电量、调整购电量、最终充放电量、紧急购电量 & 4 表 \\
+\texttt{result4-2.xlsx} & 问题四（对应问题二）全部结果 & 3 表 \\
+\texttt{result4-3.xlsx} & 问题四（对应问题三）全部结果 & 4 表 \\
+\texttt{day\_slots.parquet} 等 & 清洗后统一时间轴数据（365$\times$144）与衍生特征 & 12 个数据文件 \\
+\texttt{*.png} & 论文全部插图（调度、规律、对比、平衡过程、执行机制） & 11 张 \\
+\texttt{07\_预测模型实验/} & 预测模型的完整实验报告、精度/费用数据与 15 张多样化图表 & 15 图 $+$ 6 数据 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{AI 工具使用详情（摘要）}
+
+\begin{table}[htbp]
+\centering
+\caption{AI 工具使用情况}
+\label{tab:ai}
+\zihao{-5}
+\begin{tabularx}{\textwidth}{@{}p{3.2cm}X@{}}
+\toprule
+项目 & 说明 \\
+\midrule
+工具名称 & 大语言模型（DeepSeek 系列），配合 Python/SciPy 计算环境 \\
+使用环节 & ①数据清洗与插值代码编写；②LP/SAA/敏感性实验代码编写与调试；\\
+ & ③绘图脚本编写；④文献检索与资料整理；⑤论文语言润色 \\
+人工核验 & 全部模型公式由参赛队推导并逐项核对；所有数值结果均由脚本独立重算并与
+结果文件比对；关键结论（如周内规律、信息价值分解）均以数据图表复核 \\
+采纳情况 & 采纳代码框架与润色建议；模型选型、口径假设与结论均由参赛队主导确定 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\end{document}

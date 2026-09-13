@@ -1,0 +1,268 @@
+% !TEX program = xelatex
+% 2026 高教社杯全国大学生数学建模竞赛 C 题
+% AI 工具使用情况说明（独立文件，可直接用 xelatex 编译）
+% 编译: xelatex ai_usage.tex
+\documentclass[11pt,a4paper,fontset=fandol]{ctexart}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,array,tabularx,multirow}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\hypersetup{hidelinks}
+
+\definecolor{aiBlue}{HTML}{1F4E79}
+\definecolor{aiGray}{HTML}{F2F4F7}
+\definecolor{aiGreen}{HTML}{2E6B4E}
+
+% 圈码 ①—⑳ 等符号归入中文字体类（西文字体无此字形，否则会缺字）
+\xeCJKDeclareCharClass{CJK}{"2460 -> "24FF, "3001 -> "303F, "FF01 -> "FF5E}
+
+\setlength{\parindent}{2em}
+\setlist{leftmargin=2em,labelsep=0.6em,itemsep=0.25em,topsep=0.4em,parsep=0pt}
+\renewcommand{\arraystretch}{1.18}
+\setlength{\tabcolsep}{5pt}
+\setlength{\emergencystretch}{3em}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\small AI 使用情况说明}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% 提示框样式
+\newtcolorbox{promptbox}[1][]{
+  colback=aiGray, colframe=aiBlue!70, boxrule=0.6pt, arc=1.5pt,
+  left=6pt, right=6pt, top=5pt, bottom=5pt, fonttitle=\bfseries\small,
+  title=#1
+}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE\bfseries AI 工具使用情况说明}\\[4pt]
+  {\small 2026 年高教社杯全国大学生数学建模竞赛\quad C 题\quad 微网与外部电网电力调控策略}
+\end{center}
+
+\vspace{2pt}
+
+\section*{一、所用 AI 工具名称、版本与型号}
+
+\begin{table}[htbp]
+\centering
+\caption{AI 工具清单}
+\label{tab:tool}
+\small
+\begin{tabularx}{\textwidth}{@{}p{2.2cm}p{3.9cm}p{2.5cm}X@{}}
+\toprule
+项目 & 内容 & 项目 & 内容 \\
+\midrule
+大语言模型 & \textbf{DeepSeek-V4-Flash} & 上下文窗口 & \textbf{1M}（约 100 万 token） \\
+模型提供方 & 深度求索（DeepSeek） & 调用形态 & 通过 Claude Code 智能体客户端 \\
+客户端 & Claude Code（VS Code 扩展/命令行） & 调用方式 & 自然语言对话 $+$ 代码库读写工具 \\
+使用时间 & 2026 年 9 月 10 日 -- 9 月 13 日 & 累计时长 & 4 天（约 40 小时） \\
+本地计算环境 & Python 3.13.9（Anaconda） & 数学库 & NumPy 2.3.5、pandas 2.3.3、SciPy 1.16.3 \\
+优化求解 & SciPy \texttt{milp}/\texttt{linprog}（HiGHS 后端） & 机器学习 & scikit-learn 1.7.2、LightGBM \\
+排版工具 & XeLaTeX（TeX Live 2026） & 使用范围 & 见第二节 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{说明}：本文使用的大语言模型为 DeepSeek-V4-Flash（1M 上下文），通过 Claude Code 智能体客户端调用。
+该客户端本身不参与内容生成，仅提供“读写本地代码库、执行脚本、查看运行结果”的工具能力；
+本文全部 AI 生成内容均由 DeepSeek-V4-Flash 产生。
+\textbf{未使用任何其他 AI 工具}（包括但不限于 ChatGPT 类对话工具、代码补全插件或自动绘图服务）。
+
+\section*{二、总体使用原则与人工核验}
+
+AI 在本文中的定位是\textbf{“可执行的技术助理”}：承担代码编写与调试、数据处理、批量实验、
+图表脚本与文字润色的机械性工作；而\textbf{模型假设、口径选择、方法路线与结论判断全部由参赛队决定}。
+使用中遵循三条纪律：
+
+\begin{enumerate}[label=(\arabic*), leftmargin=2.4em]
+  \item \textbf{口径先行}：每个附件的数据口径（列头含义、缺失结构、时间轴对齐）先由参赛队给出判断，
+        AI 负责写交叉验证脚本复核，避免整表平移时段一类的系统性错误。
+  \item \textbf{禁止信息穿越}：凡涉及“计划”的环节，一律要求 AI 只用目标日之前的历史信息，
+        并单独写检查脚本核对是否存在使用当日实测的行为。
+  \item \textbf{数字必须可独立复现}：AI 给出的任何数值都不直接采信，必须落盘为脚本输出，
+        并由\textbf{不读取任何中间变量}的独立审计脚本重算比对。
+\end{enumerate}
+
+\section*{三、分问题的使用详情}
+
+\subsection*{问题一\quad 单典型日确定性最优计划}
+
+\textbf{使用环节}：将“逐时段功率平衡 $+$ SOC 递推 $+$ 充放电互斥”翻译为可求解的线性规划代码。
+本机\textbf{未安装} Gurobi/PuLP/CVXPY 等专用求解器，因此要求 AI 直接使用
+\texttt{scipy.optimize.milp}（HiGHS 后端）配合 \texttt{LinearConstraint} 与
+\texttt{Bounds(..., integrality=)} 实现 0--1 互斥变量 $u_t$，并输出结果文件。
+
+\textbf{重要数值结果}：
+\begin{itemize}[itemsep=1pt]
+  \item 全天购电量 \textbf{59\,482.67} kWh，全天购电费 \textbf{35\,126.95} 元（全局最优）；
+  \item 与无储能基线（48\,052.05 元）相比下降 \textbf{26.9\%}；
+  \item 与贪心配对启发式（42\,187.93 元）相比低 \textbf{20.1\%}，验证 LP 解为全局最优；
+  \item 指定时段购电量：10:00--10:10 与 14:00--14:10 与 20:00--20:10 均为 \textbf{0.0} kWh，
+        12:00--12:10 为 480.41、16:00--16:10 为 445.43、18:00--18:10 为 531.89 kWh；
+  \item 0:00 与 24:00 储电量均为 \textbf{6000} kWh，满足 $E_1=E_{145}$ 的周期约束。
+\end{itemize}
+
+\textbf{人工核验}：储能容量/功率/效率、SOC 限幅 $[1200,10800]$ kWh 与“允许弃光”的松弛口径
+由参赛队确定；AI 生成的约束矩阵由参赛队逐行核对系数符号后定型。
+
+\subsection*{问题二\quad 全年逐日“计划—结算”两阶段模型}
+
+\textbf{使用环节}：①构造\textbf{因果}预测（0:00 不得使用当日实测）；②实现报童安全裕度；
+③实现“0:00 定下、日内不更改”的实时平衡规则；④全年 334 天批量求解与结果写盘；
+⑤方法对照实验（SAA、无裕度、无储能、昨日外推等 8 条链）。
+
+\textbf{提示要点}：明确要求 AI“检查两阶段模型中是否存在信息穿越”，并要求把
+\textbf{日内平衡规则写成只依赖当前实测与当前储电量}的因果形式，使其在 0:00 即可冻结、日内无需重新优化。
+
+\textbf{重要数值结果}：
+\begin{itemize}[itemsep=1pt]
+  \item 预测精度：负载 MAE \textbf{137.52} kW（昨日外推为 650.02 kW）、光伏 MAE \textbf{151.95} kW（升级前 185.35 kW）；
+  \item 报童临界比 $q^{*}=4p/(4p+p)=$ \textbf{0.8}；
+  \item 全年（2.1--12.31）总费用 \textbf{13\,678\,365} 元 $=$ 计划 13\,193\,679 $+$ 紧急 484\,687 元，
+        紧急购电量 \textbf{85\,605} kWh；
+  \item 距事后最优下界（13\,652\,470 元）仅 \textbf{0.19\%}；无储能时 18\,233\,443 元（$+33.3\%$，储能价值 455.5 万元）；
+  \item 无裕度点预测 14\,933\,130 元（$+9.2\%$）；两阶段随机规划 SAA 为 13\,859\,078 元（$+1.3\%$）；
+  \item 只执行计划而不启用实时平衡规则时费用升至 14\,536\,946 元，规则价值 \textbf{85.9 万元}。
+\end{itemize}
+
+\textbf{人工核验}：AI 独立写出审计脚本 \texttt{audit\_results.py}，\textbf{不读取任何中间变量}，
+仅重读提交的 \texttt{result*.xlsx} 与附件 2/4，逐时段复算功率平衡、SOC 递推、限幅与计价，
+四问全部通过（差异 $<10^{-6}$ 元）；全年 334 天最大功率平衡残差为 $2.3\times10^{-13}$ kWh（机器精度）。
+
+\subsection*{问题三\quad 滚动预报下的“计划—调整—紧急”模型}
+
+\textbf{使用环节}：①把三段计价（计划超出退 50\%、调整超出按 1.5 倍、缺口按 5 倍）写进目标函数；
+②实现 0--6/6--12/12--18/18--24 四段滚动管道，每段从上一段\textbf{实际执行后的储电量}出发重解，
+且\textbf{偏差基准恒为 0:00 原始计划}；③按目标日之前 20 天同链误差做因果去偏；
+④完成“调整时刻组合”消融实验（单用 6:00 / 12:00 / 18:00 及其两两组合与全滚动）。
+
+\textbf{重要数值结果}：
+\begin{itemize}[itemsep=1pt]
+  \item 全时刻滚动全年 \textbf{13\,368\,415} 元，比不调整（14\,534\,449 元）节约 \textbf{116.6 万元（8.02\%）}；
+  \item 紧急购电费由 180.3 万元压至 \textbf{35.1 万元}；
+  \item 单用 6:00 / 12:00 / 18:00 分别只省 \textbf{42.4 / 78.4 / 86.0 万元}，两两组合亦不及全滚动；
+  \item 问题三自行标定报童分位 $q_3^{*}=$ \textbf{0.6}；若调整时沿用 0:00 旧裕度，费用回升 \textbf{4.66 万元}；
+  \item 求解器稳健性：同一管道交给 HiGHS 对偶单纯形与内点法，全年费用\textbf{完全一致}（13\,368\,415 元，相对差 0.00000\%）。
+\end{itemize}
+
+\textbf{人工核验}：AI 曾把“偏差基准”误设为“上一次调整量”，参赛队核对题目原文后指出应为
+“0:00 原始计划”，并重算全表；该口径差异由脚本对照实验定量确认后才写入论文。
+
+\subsection*{问题四\quad 实时波动电价下的重算}
+
+\textbf{使用环节}：①构造电价预测模型（周周期加权结构 $w_1p_{d-7,t}+w_2p_{d-14,t}+w_3p_{d-21,t}$
+$+$ LightGBM 残差修正），并强制全部因果（每 14 天用 $j<d_0$ 的样本重训）；
+②在\textbf{预测电价只用于制定与调整计划、费用一律按附件 4 实际电价结算}的口径下重算问题二、问题三；
+③完成“0:00 已知实际电价”不可达上界的对照。
+
+\textbf{重要数值结果}：
+\begin{itemize}[itemsep=1pt]
+  \item 电价预测 MAE \textbf{0.0451} 元/kWh（升级前 0.0540 元/kWh）；
+  \item Q4-2 全年 \textbf{14\,386\,351} 元，仅比不可达上界（14\,339\,252 元）高
+        \textbf{4.71 万元（0.33\%）}，储能价值 \textbf{445.9 万元}；
+  \item Q4-3 全年 \textbf{14\,101\,772} 元，比不调整（15\,243\,351 元）节约 \textbf{114.2 万元（7.49\%）}；
+  \item 结论与问题三一致：在 6:00/12:00/18:00 用当日已实现电价滚动修正后续预测并逐段调整最优。
+\end{itemize}
+
+\textbf{人工核验}：“预测电价只用于决策、结算用实际电价”这一口径由参赛队确定并写入假设；
+AI 负责按此口径改造代码，参赛队用上界对照（0:00 已知电价）验证口径实现的正确性。
+
+\subsection*{贯穿四问的公共环节}
+
+\textbf{数据工程}：附件 3 的“日期”列仅在每日首行填写，需 forward-fill；整点预报需插值到 10 分钟
+与附件 2/4 对齐；附件 2/4 列头（\texttt{00:10}, \ldots, \texttt{0:00+1}）表示\textbf{区间结束时刻}。
+\textbf{结果写盘}：一律“复制附件 5 模板后逐单元格填充”，保证表头与格式一致。
+\textbf{绘图}：11 张论文插图与 15 张预测模型实验图表由 AI 编写脚本生成。
+\textbf{方法学实验}：预言机信息价值分解（距下界的 136.9 万元缺口由光伏噪声 \textbf{35.9\%}、
+负荷噪声 \textbf{31.0\%}、交互 \textbf{33.2\%} 构成）、$\eta$/分位/裕度形式/结算方式的灵敏度
+（$q=0.5$ 时 $+8.27\%$、效率口径 $-3.40\%$、结算方式 $+6.60\%$、储能放电下限 $+12.6\%$），
+以及 SAA 失效机理核算（费用上升 \textbf{192.6\%}、紧急电量放大 \textbf{54 倍}）。
+以上均由 AI 编写实验脚本、参赛队判断结论是否成立。
+
+\section*{四、主要提示方式与使用过程}
+
+\textbf{提示方式}大体分四类：
+
+\begin{enumerate}[label=(\arabic*), leftmargin=2.4em]
+  \item \textbf{环境与约束前置}：把解释器路径、编码、可用/不可用库一次性写入项目说明文件
+        （\texttt{CLAUDE.md}），避免每次对话重复交代，也避免 AI 假设不存在的求解器可用。
+  \item \textbf{口径追问式}：对含糊的数据口径不直接给结论，而是要求 AI“先写交叉验证脚本再回答”。
+  \item \textbf{反例驱动式}：先给出一个与预期相反的现象（如随机规划反而更贵），
+        要求 AI 定位机理而非解释性辩护。
+  \item \textbf{复核任务式}：把“审计”本身当成独立任务交给 AI，要求它\textbf{不读中间变量、只读交付文件}重算。
+\end{enumerate}
+
+\textbf{使用过程}：9 月 10 日建立项目说明与数据工程（附件口径核验、统一时间轴）；
+11 日完成问题一至问题三的建模求解与结果文件；12 日完成问题四重算、方法对照、灵敏度与论文撰写；
+13 日完成论文校订与图表重绘。全过程 AI 会话记录与代码库提交一一对应（Git 提交 15 次），
+\textbf{可完整追溯}。
+
+\subsection*{典型交互示例}
+
+以下示例为会话要点的整理归纳（非逐字原文），用于说明提示方式与 AI 的实际作用。
+
+\begin{promptbox}[示例 1\quad 求解器可用性约束（问题一）]
+\textbf{提示（节选）}：本机没有安装任何专用优化求解器（无 Gurobi/PuLP/CVXPY），
+请全部改用 \texttt{scipy.optimize.milp} 实现；不要假设 Gurobi 可用，也不要引入需要联网安装的包。\\[3pt]
+\textbf{AI 输出与采纳}：改用 HiGHS 后端，用 \texttt{LinearConstraint} 装配功率平衡与 SOC 递推、
+用 \texttt{Bounds(..., integrality=)} 实现充放电互斥 0--1 变量 $u_t$；
+据此得到问题一全天购电费 \textbf{35\,126.95} 元，与贪心启发式（42\,187.93 元）对照确认全局最优。\\[3pt]
+\textbf{效果}：避免了“假设存在商业求解器”导致的方案返工。
+\end{promptbox}
+
+\begin{promptbox}[示例 2\quad 数据口径交叉验证（公共环节）]
+\textbf{提示（节选）}：附件 2/4 的列头 \texttt{00:10} 到底表示 00:00--00:10 还是 00:10--00:20？
+请用附件 1 的电价曲线与负载曲线做交叉验证后再回答，不要凭经验直接判断。\\[3pt]
+\textbf{AI 输出与采纳}：交叉验证确认列头为\textbf{区间结束时刻}（\texttt{0:00+1} 即当日 24:00），
+并按此构造统一时间轴；同时发现附件 3 的“日期”列需向下填充。\\[3pt]
+\textbf{效果}：避免了整表平移一个时段（10 分钟）的系统性口径错误——该错误会直接污染四问全部费用。
+\end{promptbox}
+
+\begin{promptbox}[示例 3\quad 结果反常的机理定位（问题二方法对照）]
+\textbf{提示（节选）}：两阶段随机规划（SAA，近 20 天实测等概率情景）的全年费用
+反而比我们的报童裕度方案高 192.6\%，紧急电量高达 6.93 GWh。
+请检查情景构造中“当日初始储电量”是否被 20 个情景重复使用，并定量核算这一自由度的影响。\\[3pt]
+\textbf{AI 输出与采纳}：定位到\textbf{情景内储能自由度被重复利用}——每个情景都从当日同一初始电量出发、
+以自身最优方式兜底，故情景内紧急购电几乎为零，优化器据此大幅压低计划购电量 $P^0$；
+真实日偏差一旦劣于多数情景，储能已被消耗，只能按 5 倍电价紧急购电。\\[3pt]
+\textbf{效果}：该分析写入论文，成为“小样本经验情景下随机规划会产生系统性乐观偏差”的定量证据
+（紧急电量放大 \textbf{54 倍}）。
+\end{promptbox}
+
+\begin{promptbox}[示例 4\quad 独立复核任务（结果正确性）]
+\textbf{提示（节选）}：写一个审计脚本，\textbf{不读取任何中间变量}，只读提交的 5 个 \texttt{result*.xlsx}
+与原始附件 2/附件 4，按附件 5 各表的定义逐时段重算功率平衡与弃光、SOC 递推与限幅、
+充放电功率上限、计划/调整/紧急三段计价之和，输出最大差异。\\[3pt]
+\textbf{AI 输出与采纳}：生成 \texttt{audit\_results.py}；四问全部通过（差异 $<10^{-6}$ 元），
+并校核了储电量链条的跨日衔接 $E_{145}^{(d)}=E_{1}^{(d+1)}$；
+另用时段的功率平衡残差最大为 $2.3\times10^{-13}$ kWh。\\[3pt]
+\textbf{效果}：论文“论文数字 $=$ 结果文件 $=$ 原始数据”的三重独立证据之一。
+\end{promptbox}
+
+\begin{promptbox}[示例 5\quad 论文语言与格式（撰写环节）]
+\textbf{提示（节选）}：把这段结果分析改写为竞赛论文口吻：结论先行、数字加粗、不要形容词堆砌；
+所有数字必须来自 \texttt{A\_all\_numbers.json}，不得自行取整或估算。\\[3pt]
+\textbf{AI 输出与采纳}：按上述要求润色文字；参赛队逐句核对数值与结论方向后定稿。\\[3pt]
+\textbf{效果}：文字表述统一，且\textbf{杜绝了 AI 编造数字}——所有数值均要求可回溯到脚本输出文件。
+\end{promptbox}
+
+\section*{五、AI 未参与的环节与责任声明}
+
+\begin{enumerate}[label=(\arabic*), leftmargin=2.4em]
+  \item \textbf{AI 未参与}：模型假设与物理口径的确定（弃光松弛、效率单程/往返读法、偏差基准、
+        预测电价只用于决策等）、方法路线的取舍、结论的判断与取舍、以及最终结果文件的数值确认。
+  \item \textbf{论文文字}：AI 生成的文字仅作草稿与润色，全部经参赛队改写、核对与定稿；
+        论文的论证结构与观点由参赛队负责。
+  \item \textbf{数据与结果}：本文使用的全部数据来自赛题附件，不含任何由 AI 生成的虚构数据；
+        全部数值结果均可由提交代码复现，并经独立审计脚本复核通过。
+  \item \textbf{责任}：参赛队对本文的全部内容（含 AI 辅助完成的部分）承担完全责任。
+\end{enumerate}
+
+\end{document}
